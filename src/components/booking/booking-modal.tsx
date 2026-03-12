@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/stores/auth'
-import { X, Upload, Loader2, CheckCircle } from 'lucide-react'
+import { X, Upload, Loader2, CheckCircle, Calendar } from 'lucide-react'
 import type { Profile } from '@/types'
 import { BUCKETS, bookingRefPath, uploadFile } from '@/lib/storage'
 
