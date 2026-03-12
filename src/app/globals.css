@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap');
+
+:root {
+  /* InkSnap Color System */
+  --ink-black: #0a0a0b;
+  --ink-dark: #111114;
+  --ink-surface: #18181c;
+  --ink-surface-raised: #1f1f24;
+  --ink-border: rgba(255,255,255,0.07);
+  --ink-border-hover: rgba(255,255,255,0.14);
+
+  /* Brand */
+  --ink-red: #e63946;
+  --ink-red-dim: rgba(230, 57, 70, 0.15);
+  --ink-red-glow: rgba(230, 57, 70, 0.3);
+
+  /* Text */
+  --ink-text: #f0eeea;
+  --ink-text-muted: #8a8885;
+  --ink-text-faint: #4a4846;
+
+  /* Fonts */
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--ink-black);
+  color: var(--ink-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--ink-black);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-border-hover); }
+
+/* Selection */
+::selection {
+  background: var(--ink-red-dim);
+  color: var(--ink-text);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--ink-red);
+  outline-offset: 2px;
+}
+
+/* Typography utilities */
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+
+/* Noise texture overlay */
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ink gradient text */
+.ink-gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #e63946 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card styles */
+.ink-card {
+  background: var(--ink-surface);
+  border: 1px solid var(--ink-border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.ink-card:hover {
+  border-color: var(--ink-border-hover);
+}
+
+/* Red accent line */
+.ink-accent-line {
+  width: 32px;
+  height: 2px;
+  background: var(--ink-red);
+  border-radius: 1px;
+}
+
+/* Image overlay gradient */
+.ink-image-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 11, 0.9) 0%,
+    rgba(10, 10, 11, 0.4) 40%,
+    transparent 100%
+  );
+}
+
+/* Portfolio grid hover */
+.portfolio-item {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.portfolio-item img {
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.portfolio-item:hover img {
+  transform: scale(1.04);
+}
+
+.portfolio-item .overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10,10,11,0.85) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.portfolio-item:hover .overlay {
+  opacity: 1;
+}
+
+/* Star rating */
+.star-filled { color: #e63946; }
+.star-empty { color: #2a2a2e; }
+
+/* Message bubble */
+.message-bubble-sent {
+  background: var(--ink-red);
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+}
+
+.message-bubble-received {
+  background: var(--ink-surface-raised);
+  color: var(--ink-text);
+  border-radius: 18px 18px 18px 4px;
+  border: 1px solid var(--ink-border);
+}
+
+/* Status badge */
+.status-pending  { color: #f59e0b; background: rgba(245,158,11,0.1); }
+.status-confirmed { color: #10b981; background: rgba(16,185,129,0.1); }
+.status-declined { color: #ef4444; background: rgba(239,68,68,0.1); }
+.status-completed { color: #60a5fa; background: rgba(96,165,250,0.1); }
+
+/* Mapbox overrides */
+.mapboxgl-popup-content {
+  background: var(--ink-surface) !important;
+  border: 1px solid var(--ink-border) !important;
+  border-radius: 8px !important;
+  color: var(--ink-text) !important;
+  padding: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+}
+
+.mapboxgl-popup-tip { display: none !important; }
+
+/* Page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ink-surface) 25%,
+    var(--ink-surface-raised) 50%,
+    var(--ink-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
