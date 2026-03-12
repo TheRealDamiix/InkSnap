@@ -20,9 +20,9 @@ export default async function ArtistProfilePage({ params }: Props) {
       reviews(id, rating, body, created_at, client:profiles!reviews_client_id_fkey(display_name, username)),
       artist_studios(id, is_primary, studio:studios(*))
     `)
-    .eq('username', username)
+    .ilike('username', username)
     .eq('role', 'artist')
-    .single()
+    .maybeSingle()
 
   if (!artist) notFound()
 
