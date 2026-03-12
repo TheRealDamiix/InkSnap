@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Palette, User } from 'lucide-react'
+import { Loader2, Palette, User, Check, X } from 'lucide-react'
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -26,6 +26,8 @@ function SignupForm() {
   const searchParams = useSearchParams()
   const defaultRole = searchParams.get('role') === 'artist' ? 'artist' : 'client'
   const [error, setError] = useState('')
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
@@ -33,8 +35,33 @@ function SignupForm() {
   })
 
   const selectedRole = watch('role')
+  const usernameValue = watch('username')
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (!usernameValue || usernameValue.length < 3 || !/^[a-zA-Z0-9_]+$/.test(usernameValue)) {
+      setUsernameStatus('idle')
+      return
+    }
+    setUsernameStatus('checking')
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('profiles')
+        .select('username')
+        .ilike('username', usernameValue)
+        .maybeSingle()
+      setUsernameStatus(data ? 'taken' : 'available')
+    }, 500)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [usernameValue])
 
   const onSubmit = async (data: SignupForm) => {
+    if (usernameStatus === 'taken') {
+      setError('That username is already taken. Please choose another.')
+      return
+    }
     setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
@@ -103,12 +130,31 @@ function SignupForm() {
               </div>
               <div>
                 <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Username</label>
-                <input
-                  {...register('username')}
-                  placeholder="jane_ink"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/50 transition-colors text-sm"
-                />
+                <div className="relative">
+                  <input
+                    {...register('username')}
+                    placeholder="jane_ink"
+                    className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 pr-8 text-white placeholder:text-white/20 focus:outline-none transition-colors text-sm ${
+                      usernameStatus === 'taken'
+                        ? 'border-red-500/50 focus:border-red-500/70'
+                        : usernameStatus === 'available'
+                        ? 'border-emerald-500/50 focus:border-emerald-500/70'
+                        : 'border-white/10 focus:border-[#e63946]/50'
+                    }`}
+                  />
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                    {usernameStatus === 'checking' && <Loader2 size={14} className="animate-spin text-white/30" />}
+                    {usernameStatus === 'available' && <Check size={14} className="text-emerald-400" />}
+                    {usernameStatus === 'taken' && <X size={14} className="text-red-400" />}
+                  </div>
+                </div>
                 {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username.message}</p>}
+                {!errors.username && usernameStatus === 'taken' && (
+                  <p className="text-red-400 text-xs mt-1">Username already taken</p>
+                )}
+                {!errors.username && usernameStatus === 'available' && (
+                  <p className="text-emerald-400 text-xs mt-1">Username available</p>
+                )}
               </div>
             </div>
             <div>
@@ -133,7 +179,7 @@ function SignupForm() {
             </div>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || usernameStatus === 'taken' || usernameStatus === 'checking'}
               className="w-full bg-[#e63946] hover:bg-[#d42f3b] disabled:opacity-50 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mt-2"
             >
               {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}

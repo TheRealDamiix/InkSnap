@@ -13,12 +13,30 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
 
     const loadProfile = async (userId: string) => {
-      const { data } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+
+      let { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('auth_user_id', userId)
-        .single()
-      setProfile(data as Profile | null)
+        .maybeSingle()
+
+      // Trigger didn't fire — create profile now from auth metadata
+      if (!profile && user) {
+        const meta = user.user_metadata ?? {}
+        const role = meta.role === 'artist' ? 'artist' : 'client'
+        const username = meta.username ?? 'user_' + userId.replace(/-/g, '').slice(0, 8)
+        const display_name = meta.display_name ?? username
+
+        const { data: created } = await supabase
+          .from('profiles')
+          .insert({ auth_user_id: userId, role, username, display_name })
+          .select()
+          .maybeSingle()
+        profile = created
+      }
+
+      setProfile(profile as Profile | null)
       setLoading(false)
     }
 
