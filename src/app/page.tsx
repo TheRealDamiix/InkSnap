@@ -60,9 +60,9 @@ export default function HomePage() {
       <section className="border-y border-white/5 bg-white/[0.02] py-10 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-3 gap-8 text-center">
           {[
-            { value: '2,400+', label: 'Verified Artists' },
-            { value: '18 Cities', label: 'And growing' },
-            { value: '4.9★', label: 'Average Rating' },
+            { value: 'Free', label: 'To join & browse' },
+            { value: 'Direct', label: 'Artist messaging' },
+            { value: 'Easy', label: 'Booking requests' },
           ].map((stat) => (
             <div key={stat.label}>
               <div className="font-display text-4xl text-white mb-1">{stat.value}</div>

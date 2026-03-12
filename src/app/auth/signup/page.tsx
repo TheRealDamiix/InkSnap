@@ -15,7 +15,7 @@ const signupSchema = z.object({
   display_name: z.string().min(2, 'Name is required'),
   username: z.string()
     .min(3, 'Username must be at least 3 characters')
-    .regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers, and underscores only'),
+    .regex(/^[a-zA-Z0-9_]+$/, 'Letters, numbers, and underscores only'),
   role: z.enum(['client', 'artist']),
 })
 

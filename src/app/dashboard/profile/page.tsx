@@ -14,7 +14,7 @@ import { uploadAvatar, BUCKETS, getPublicUrl, avatarPath } from '@/lib/storage'
 
 const schema = z.object({
   display_name: z.string().min(2),
-  username: z.string().min(3).regex(/^[a-z0-9_]+$/),
+  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/),
   bio: z.string().max(500).optional(),
   location: z.string().optional(),
   city: z.string().optional(),
