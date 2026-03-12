@@ -2,6 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -12,7 +14,13 @@ import { TATTOO_STYLES } from '@/lib/constants'
 
 export default function SavedArtistsPage() {
   const { profile } = useAuthStore()
+  const router = useRouter()
   const qc = useQueryClient()
+
+  // Client-only — redirect artists
+  useEffect(() => {
+    if (profile && profile.role !== 'client') router.replace('/dashboard')
+  }, [profile, router])
   const supabase = createClient()
 
   const { data: saved = [], isLoading } = useQuery({
@@ -42,7 +50,7 @@ export default function SavedArtistsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['saved-artists', profile?.id] }),
   })
 
-  if (!profile) return null
+  if (!profile || profile.role !== 'client') return null
 
   return (
     <div className="space-y-6">

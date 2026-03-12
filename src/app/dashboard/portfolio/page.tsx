@@ -2,18 +2,24 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, Trash2, Loader2, Plus, GripVertical } from 'lucide-react'
+import { Upload, Trash2, Loader2, Plus } from 'lucide-react'
 import { uploadPortfolioImage, getPublicUrl, BUCKETS, deleteFile } from '@/lib/storage'
 import type { PortfolioImage } from '@/types'
-import { TATTOO_STYLES } from '@/lib/constants'
 
 export default function PortfolioPage() {
   const { profile } = useAuthStore()
+  const router = useRouter()
   const [uploading, setUploading] = useState(false)
+
+  // Artist-only — redirect clients
+  useEffect(() => {
+    if (profile && profile.role !== 'artist') router.replace('/dashboard')
+  }, [profile, router])
   const qc = useQueryClient()
   const supabase = createClient()
 
@@ -27,7 +33,7 @@ export default function PortfolioPage() {
         .order('display_order', { ascending: true })
       return data as PortfolioImage[]
     },
-    enabled: !!profile?.id,
+    enabled: !!profile?.id && profile?.role === 'artist',
   })
 
   const deleteImage = useMutation({
@@ -58,7 +64,7 @@ export default function PortfolioPage() {
     e.target.value = ''
   }
 
-  if (!profile) return null
+  if (!profile || profile.role !== 'artist') return null
 
   return (
     <div className="space-y-6">

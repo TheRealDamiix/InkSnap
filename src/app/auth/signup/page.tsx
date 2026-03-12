@@ -75,7 +75,15 @@ function SignupForm() {
         },
       },
     })
-    if (error) { setError(error.message); return }
+    if (error) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('rate limit') || msg.includes('email rate')) {
+        setError('Too many sign-up attempts. Please wait a few minutes and try again, or disable email confirmation in your Supabase project (Auth → Settings → Disable "Confirm email").')
+      } else {
+        setError(error.message)
+      }
+      return
+    }
     router.push('/dashboard')
   }
 

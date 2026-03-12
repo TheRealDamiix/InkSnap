@@ -2,7 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +33,13 @@ const TYPE_CONFIG = {
 
 export default function PromotionsPage() {
   const { profile } = useAuthStore()
+  const router = useRouter()
   const [creating, setCreating] = useState(false)
+
+  // Artist-only — redirect clients
+  useEffect(() => {
+    if (profile && profile.role !== 'artist') router.replace('/dashboard')
+  }, [profile, router])
   const qc = useQueryClient()
   const supabase = createClient()
 
@@ -79,7 +86,7 @@ export default function PromotionsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['promotions', profile?.id] }),
   })
 
-  if (!profile) return null
+  if (!profile || profile.role !== 'artist') return null
 
   return (
     <div className="space-y-6">

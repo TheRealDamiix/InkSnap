@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email'),
+  identifier: z.string().min(1, 'Email or username required'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
@@ -28,8 +28,22 @@ function LoginForm() {
   const onSubmit = async (data: LoginForm) => {
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword(data)
-    if (error) { setError(error.message); return }
+
+    let email = data.identifier.trim()
+
+    // If not an email address, look up by username
+    if (!email.includes('@')) {
+      const { data: result, error: rpcErr } = await supabase
+        .rpc('get_email_for_login', { p_username: email })
+      if (rpcErr || !result) {
+        setError('No account found with that username.')
+        return
+      }
+      email = result as string
+    }
+
+    const { error: authErr } = await supabase.auth.signInWithPassword({ email, password: data.password })
+    if (authErr) { setError(authErr.message); return }
     router.push('/dashboard')
   }
 
@@ -49,14 +63,15 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Email</label>
+              <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Email or Username</label>
               <input
-                {...register('email')}
-                type="email"
-                placeholder="you@example.com"
+                {...register('identifier')}
+                type="text"
+                placeholder="you@example.com or jane_ink"
+                autoComplete="username"
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/50 transition-colors text-sm"
               />
-              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+              {errors.identifier && <p className="text-red-400 text-xs mt-1">{errors.identifier.message}</p>}
             </div>
             <div>
               <label className="text-xs text-white/40 uppercase tracking-widest block mb-2">Password</label>
