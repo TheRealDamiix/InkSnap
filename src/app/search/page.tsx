@@ -11,6 +11,89 @@ import Link from 'next/link'
 import type { Profile } from '@/types'
 import { getPublicUrl, BUCKETS } from '@/lib/storage'
 
+interface CitySuggestion {
+  display_name: string
+  name: string
+  address: { city?: string; town?: string; village?: string; state?: string; country?: string }
+}
+
+function CityInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([])
+  const [open, setOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleInput = (v: string) => {
+    onChange(v)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!v || v.length < 2) { setSuggestions([]); setOpen(false); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(v)}&featuretype=city&format=json&addressdetails=1&limit=6`,
+          { headers: { 'Accept-Language': 'en' } }
+        )
+        const data: CitySuggestion[] = await res.json()
+        setSuggestions(data)
+        setOpen(data.length > 0)
+      } catch { /* network error — silently ignore */ }
+    }, 400)
+  }
+
+  const pick = (s: CitySuggestion) => {
+    const city = s.address.city ?? s.address.town ?? s.address.village ?? s.name
+    onChange(city)
+    setSuggestions([])
+    setOpen(false)
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative w-36 sm:w-48 hidden sm:block">
+      <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 z-10" />
+      <input
+        value={value}
+        onChange={e => handleInput(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        placeholder="City"
+        className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+      />
+      {open && (
+        <ul className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1f] border border-white/10 rounded-xl overflow-hidden z-50 shadow-xl">
+          {suggestions.map((s, i) => {
+            const cityName = s.address.city ?? s.address.town ?? s.address.village ?? s.name
+            const state = s.address.state ?? ''
+            const country = s.address.country ?? ''
+            return (
+              <li key={i}>
+                <button
+                  type="button"
+                  onMouseDown={() => pick(s)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors"
+                >
+                  <span className="text-sm text-white">{cityName}</span>
+                  {(state || country) && (
+                    <span className="text-xs text-white/40 ml-1.5">{[state, country].filter(Boolean).join(', ')}</span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -76,16 +159,8 @@ function SearchContent() {
               className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
             />
           </div>
-          {/* City input */}
-          <div className="relative w-36 sm:w-48 hidden sm:block">
-            <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-            <input
-              value={city}
-              onChange={e => setCity(e.target.value)}
-              placeholder="City"
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
-            />
-          </div>
+          {/* City input with autocomplete */}
+          <CityInput value={city} onChange={setCity} />
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
             className={`p-2.5 rounded-xl border text-sm transition-colors flex items-center gap-1.5 ${

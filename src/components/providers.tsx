@@ -12,32 +12,42 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
 
+    let loadingUserId: string | null = null
+
     const loadProfile = async (userId: string) => {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Deduplicate concurrent calls for the same user
+      if (loadingUserId === userId) return
+      loadingUserId = userId
 
-      let { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('auth_user_id', userId)
-        .maybeSingle()
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
 
-      // Trigger didn't fire — create profile now from auth metadata
-      if (!profile && user) {
-        const meta = user.user_metadata ?? {}
-        const role = meta.role === 'artist' ? 'artist' : 'client'
-        const username = meta.username ?? 'user_' + userId.replace(/-/g, '').slice(0, 8)
-        const display_name = meta.display_name ?? username
+        // Upsert to avoid race condition between getSession + onAuthStateChange
+        if (user) {
+          const meta = user.user_metadata ?? {}
+          const role = meta.role === 'artist' ? 'artist' : 'client'
+          const username = meta.username ?? 'user_' + userId.replace(/-/g, '').slice(0, 8)
+          const display_name = meta.display_name ?? username
 
-        const { data: created } = await supabase
+          await supabase
+            .from('profiles')
+            .upsert(
+              { auth_user_id: userId, role, username, display_name },
+              { onConflict: 'auth_user_id', ignoreDuplicates: true }
+            )
+        }
+
+        const { data: profile } = await supabase
           .from('profiles')
-          .insert({ auth_user_id: userId, role, username, display_name })
-          .select()
+          .select('*')
+          .eq('auth_user_id', userId)
           .maybeSingle()
-        profile = created
-      }
 
-      setProfile(profile as Profile | null)
-      setLoading(false)
+        setProfile(profile as Profile | null)
+      } finally {
+        setLoading(false)
+        loadingUserId = null
+      }
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
