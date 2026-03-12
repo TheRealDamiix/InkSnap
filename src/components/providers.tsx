@@ -50,8 +50,17 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // Enforce "remember me = off": if neither persist flag is present,
+        // this is a stale session from a previous browser session — sign out.
+        const hasRemember = typeof window !== 'undefined' && localStorage.getItem('inksnap_remember') === '1'
+        const hasSession  = typeof window !== 'undefined' && sessionStorage.getItem('inksnap_session') === '1'
+        if (!hasRemember && !hasSession) {
+          await supabase.auth.signOut()
+          setLoading(false)
+          return
+        }
         loadProfile(session.user.id)
       } else {
         setLoading(false)

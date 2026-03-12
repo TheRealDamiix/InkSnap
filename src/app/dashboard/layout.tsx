@@ -59,6 +59,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    localStorage.removeItem('inksnap_remember')
+    sessionStorage.removeItem('inksnap_session')
     router.push('/')
   }
 

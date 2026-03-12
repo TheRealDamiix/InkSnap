@@ -19,6 +19,7 @@ type LoginForm = z.infer<typeof loginSchema>
 function LoginForm() {
   const router = useRouter()
   const [showPass, setShowPass] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
@@ -44,6 +45,16 @@ function LoginForm() {
 
     const { error: authErr } = await supabase.auth.signInWithPassword({ email, password: data.password })
     if (authErr) { setError(authErr.message); return }
+
+    // Store remember-me preference so the auth provider can enforce it
+    if (rememberMe) {
+      localStorage.setItem('inksnap_remember', '1')
+      sessionStorage.removeItem('inksnap_session')
+    } else {
+      sessionStorage.setItem('inksnap_session', '1')
+      localStorage.removeItem('inksnap_remember')
+    }
+
     router.push('/dashboard')
   }
 
@@ -88,6 +99,24 @@ function LoginForm() {
               </div>
               {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
+
+            {/* Remember me */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div
+                onClick={() => setRememberMe(!rememberMe)}
+                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
+                  rememberMe ? 'bg-[#e63946] border-[#e63946]' : 'border-white/20 bg-white/5'
+                }`}
+              >
+                {rememberMe && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm text-white/50">Remember me</span>
+            </label>
+
             <button
               type="submit"
               disabled={isSubmitting}
