@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { ArtistProfileClient } from '@/components/artist/artist-profile-client'
