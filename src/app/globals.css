@@ -169,17 +169,27 @@ body {
 .status-declined { color: #ef4444; background: rgba(239,68,68,0.1); }
 .status-completed { color: #60a5fa; background: rgba(96,165,250,0.1); }
 
-/* Mapbox overrides */
-.mapboxgl-popup-content {
+/* Leaflet overrides */
+.leaflet-popup-content-wrapper {
   background: var(--ink-surface) !important;
   border: 1px solid var(--ink-border) !important;
   border-radius: 8px !important;
   color: var(--ink-text) !important;
-  padding: 12px !important;
+  padding: 0 !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
 }
 
-.mapboxgl-popup-tip { display: none !important; }
+.leaflet-popup-content {
+  margin: 12px !important;
+  color: var(--ink-text) !important;
+}
+
+.leaflet-popup-tip { display: none !important; }
+
+.leaflet-container {
+  background: var(--ink-dark) !important;
+  font-family: inherit !important;
+}
 
 /* Page transitions */
 @keyframes fadeIn {

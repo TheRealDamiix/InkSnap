@@ -9,7 +9,7 @@ A localized dual-sided marketplace connecting tattoo artists with clients.
 - **State**: Zustand (auth) + TanStack Query v5 (server state)
 - **Forms**: React Hook Form + Zod
 - **Backend**: Supabase (PostgreSQL + Auth + Storage + Realtime)
-- **Maps**: Mapbox GL JS
+- **Maps**: Leaflet + OpenStreetMap
 
 ---
 
@@ -37,12 +37,7 @@ npm install
    - `promotions`
 4. Copy your project URL and anon key
 
-### 3. Mapbox Setup
-
-1. Sign up at [mapbox.com](https://mapbox.com)
-2. Create a public access token
-
-### 4. Environment Variables
+### 3. Environment Variables
 
 ```bash
 cp .env.local.example .env.local
@@ -52,7 +47,6 @@ Fill in:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ1...
 ```
 
 ### 5. Run
@@ -132,7 +126,7 @@ src/
 | Artist search (name, city, styles) | ✅ |
 | Multi-studio affiliation | ✅ |
 | Structured availability (schema ready) | ✅ |
-| Mapbox map view (search page) | 🔧 Scaffold ready |
+| Leaflet/OSM map view (search page) | 🔧 Scaffold ready |
 
 ---
 
