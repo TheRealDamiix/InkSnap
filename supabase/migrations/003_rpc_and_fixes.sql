@@ -84,11 +84,13 @@ create policy "messages_insert" on messages
 -- ============================================================
 
 -- Portfolio
-create policy if not exists "portfolio_storage_update" on storage.objects
+drop policy if exists "portfolio_storage_update" on storage.objects;
+create policy "portfolio_storage_update" on storage.objects
   for update using (bucket_id = 'portfolio' and auth.uid() is not null);
 
 -- Avatars
-create policy if not exists "avatars_storage_update" on storage.objects
+drop policy if exists "avatars_storage_update" on storage.objects;
+create policy "avatars_storage_update" on storage.objects
   for update using (bucket_id = 'avatars' and auth.uid() is not null);
 
 -- ============================================================
