@@ -109,27 +109,16 @@ export default function BookingDetailPage() {
     if (!otherProfileId) { setMessaging(false); return }
 
     try {
-      // Check for existing conversation
-      const { data: myConvs } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('profile_id', profile.id)
-
-      const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
-
-      if (myConvIds.length > 0) {
-        const { data: shared } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('profile_id', otherProfileId)
-          .in('conversation_id', myConvIds)
-        if (shared && shared.length > 0) {
-          window.location.href = `/messages/${shared[0].conversation_id}`
-          return
-        }
+      // find_conversation is SECURITY DEFINER — no RLS recursion
+      const { data: existingId } = await supabase.rpc('find_conversation', {
+        other_profile_id: otherProfileId,
+      })
+      if (existingId) {
+        window.location.href = `/messages/${existingId}`
+        return
       }
 
-      // Pre-generate UUID so we never need to SELECT back the conversation
+      // No existing conversation — create one with pre-generated UUID
       // (avoids RLS blocking the returning clause before participants exist)
       const convId = crypto.randomUUID()
       await supabase.from('conversations').insert({ id: convId })

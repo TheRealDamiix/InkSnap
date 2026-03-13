@@ -17,56 +17,16 @@ export default function MessagesPage() {
 
   const load = useCallback(async () => {
     if (!profile) return
-
-    // Get conversations the user is part of
-    const { data: participations } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id, unread_count, created_at')
-      .eq('profile_id', profile.id)
-
-    if (!participations?.length) { setConversations([]); return }
-
-    const convIds = participations.map(p => p.conversation_id)
-
-    // Get other participants (works after migration 003 fixes cp_select)
-    const { data: others } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id, profile:profiles(id, display_name, username, avatar_url, role)')
-      .in('conversation_id', convIds)
-      .neq('profile_id', profile.id)
-
-    // Get last messages for each conversation
-    const { data: lastMsgs } = await supabase
-      .from('messages')
-      .select('conversation_id, body, attachment_name, attachment_type, created_at')
-      .in('conversation_id', convIds)
-      .order('created_at', { ascending: false })
-
-    const lastMsgMap: Record<string, any> = {}
-    lastMsgs?.forEach(m => {
-      if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m
-    })
-
-    const enriched = participations
-      .map(p => ({
-        ...p,
-        other: (others ?? []).find(o => o.conversation_id === p.conversation_id)?.profile,
-        lastMessage: lastMsgMap[p.conversation_id] ?? null,
-      }))
-      .sort((a, b) => {
-        const ta = a.lastMessage?.created_at ?? a.created_at ?? ''
-        const tb = b.lastMessage?.created_at ?? b.created_at ?? ''
-        return tb.localeCompare(ta)
-      })
-
-    setConversations(enriched)
+    // Uses SECURITY DEFINER function — bypasses cp_select RLS entirely
+    const { data } = await supabase.rpc('get_my_conversations')
+    setConversations(data ?? [])
   }, [profile?.id])
 
   useEffect(() => {
     if (!profile) return
     load()
 
-    // Real-time: refresh list when any new message arrives
+    // Real-time: refresh inbox when any message arrives
     const channel = supabase
       .channel(`inbox:${profile.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load)
@@ -78,10 +38,10 @@ export default function MessagesPage() {
   if (!profile) return null
 
   const lastMsgPreview = (conv: any) => {
-    if (!conv.lastMessage) return 'No messages yet'
-    if (conv.lastMessage.body) return conv.lastMessage.body
-    if (conv.lastMessage.attachment_name) return `📎 ${conv.lastMessage.attachment_name}`
-    if (conv.lastMessage.attachment_type?.startsWith('image/')) return '📷 Image'
+    if (!conv.last_message_at) return 'No messages yet'
+    if (conv.last_message_body) return conv.last_message_body
+    if (conv.last_message_name) return `📎 ${conv.last_message_name}`
+    if (conv.last_message_type?.startsWith('image/')) return '📷 Image'
     return 'Attachment'
   }
 
@@ -89,9 +49,7 @@ export default function MessagesPage() {
     <div className="min-h-screen bg-[#0a0a0b]">
       <div className="sticky top-0 z-30 bg-[#0a0a0b]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-4">
         <Link href="/dashboard" className="font-display text-xl text-white tracking-wider hidden sm:block">INKSNAP</Link>
-        <div>
-          <h1 className="font-display text-2xl text-white tracking-wide">MESSAGES</h1>
-        </div>
+        <h1 className="font-display text-2xl text-white tracking-wide">MESSAGES</h1>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -112,16 +70,16 @@ export default function MessagesPage() {
                 className="ink-card flex items-center gap-3 p-4 hover:scale-[1.01] transition-transform"
               >
                 <div className="w-11 h-11 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-lg flex-shrink-0">
-                  {conv.other?.display_name?.[0]?.toUpperCase() ?? '?'}
+                  {conv.other_display_name?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-white truncate">
-                      {conv.other?.display_name ?? 'Loading...'}
+                      {conv.other_display_name ?? 'Unknown'}
                     </span>
-                    {conv.lastMessage && (
+                    {conv.last_message_at && (
                       <span className="text-xs text-white/25 flex-shrink-0 ml-2">
-                        {formatDistanceToNow(new Date(conv.lastMessage.created_at), { addSuffix: false })} ago
+                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })} ago
                       </span>
                     )}
                   </div>

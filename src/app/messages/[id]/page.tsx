@@ -68,13 +68,9 @@ function ConversationView() {
     }
 
     const loadParticipant = async () => {
-      const { data } = await supabase
-        .from('conversation_participants')
-        .select('profile:profiles(*)')
-        .eq('conversation_id', convId)
-        .neq('profile_id', profile.id)
-        .maybeSingle()
-      if (data?.profile) setOtherParticipant(data.profile as any)
+      // Uses SECURITY DEFINER function — bypasses cp_select RLS
+      const { data } = await supabase.rpc('get_conversation_partner', { conv_id: convId })
+      if (data?.[0]) setOtherParticipant(data[0] as any)
     }
 
     loadMessages()
