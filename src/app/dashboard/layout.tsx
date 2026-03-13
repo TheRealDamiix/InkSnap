@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     await supabase.auth.signOut()
     localStorage.removeItem('inksnap_remember')
     sessionStorage.removeItem('inksnap_session')
-    router.push('/')
+    window.location.href = '/'
   }
 
   const Sidebar = () => (

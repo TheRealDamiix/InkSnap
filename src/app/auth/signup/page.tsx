@@ -84,7 +84,10 @@ function SignupForm() {
       }
       return
     }
-    router.push('/dashboard')
+    // Default: remember new signups
+    localStorage.setItem('inksnap_remember', '1')
+    // Hard redirect ensures fresh auth state
+    window.location.href = '/dashboard'
   }
 
   return (

@@ -55,7 +55,8 @@ function LoginForm() {
       localStorage.removeItem('inksnap_remember')
     }
 
-    router.push('/dashboard')
+    // Hard redirect ensures fresh auth state and server components re-render
+    window.location.href = '/dashboard'
   }
 
   return (
