@@ -114,16 +114,15 @@ export function ArtistProfileClient({ artist }: Props) {
       }
     }
 
-    // No existing conversation — create one
-    const { data: conv } = await supabase
-      .from('conversations').insert({}).select().single()
-    if (conv) {
-      await supabase.from('conversation_participants').insert([
-        { conversation_id: conv.id, profile_id: profile.id },
-        { conversation_id: conv.id, profile_id: artist.id },
-      ])
-      window.location.href = `/messages/${conv.id}`
-    }
+    // Pre-generate UUID so we never need to SELECT back the conversation
+    // (avoids RLS blocking the returning clause before participants are added)
+    const convId = crypto.randomUUID()
+    await supabase.from('conversations').insert({ id: convId })
+    await supabase.from('conversation_participants').insert([
+      { conversation_id: convId, profile_id: profile.id },
+      { conversation_id: convId, profile_id: artist.id },
+    ])
+    window.location.href = `/messages/${convId}`
   }
 
   const primaryStudio = artist.artist_studios?.find((s: any) => s.is_primary) ?? artist.artist_studios?.[0]

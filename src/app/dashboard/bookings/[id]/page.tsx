@@ -2,13 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import {
-  ArrowLeft, Calendar, Loader2, Star, MessageSquare, MapPin, Ruler, DollarSign
+  ArrowLeft, Calendar, Loader2, Star, MessageSquare, MapPin, Ruler, DollarSign, Image
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -18,7 +18,6 @@ import type { BookingStatus } from '@/types'
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuthStore()
-  const router = useRouter()
   const qc = useQueryClient()
   const supabase = createClient()
 
@@ -27,6 +26,7 @@ export default function BookingDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [artistNote, setArtistNote] = useState('')
   const [showNoteForm, setShowNoteForm] = useState(false)
+  const [messaging, setMessaging] = useState(false)
 
   const isArtist = profile?.role === 'artist'
 
@@ -39,12 +39,30 @@ export default function BookingDetailPage() {
           *,
           artist:profiles!bookings_artist_id_fkey(id, display_name, username, avatar_url, city),
           client:profiles!bookings_client_id_fkey(id, display_name, username, avatar_url),
-          booking_images(id, storage_path),
           review:reviews(id, rating, body)
         `)
         .eq('id', id)
         .single()
-      return data
+
+      if (!data) return null
+
+      // Fetch booking images separately and generate signed URLs
+      const { data: images } = await supabase
+        .from('booking_images')
+        .select('id, storage_path')
+        .eq('booking_id', id)
+
+      const signedImages: { id: string; url: string }[] = []
+      for (const img of images ?? []) {
+        const { data: signed } = await supabase.storage
+          .from('booking-refs')
+          .createSignedUrl(img.storage_path, 3600)
+        if (signed?.signedUrl) {
+          signedImages.push({ id: img.id, url: signed.signedUrl })
+        }
+      }
+
+      return { ...data, signedImages }
     },
     enabled: !!profile?.id && !!id,
   })
@@ -61,6 +79,7 @@ export default function BookingDetailPage() {
       qc.invalidateQueries({ queryKey: ['bookings', profile?.id] })
       qc.invalidateQueries({ queryKey: ['artist-stats', profile?.id] })
       setShowNoteForm(false)
+      setArtistNote('')
     },
   })
 
@@ -77,42 +96,50 @@ export default function BookingDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['booking-detail', id] })
       setShowReviewForm(false)
+      setReviewBody('')
     },
   })
 
   const openConversation = async () => {
     if (!profile || !booking) return
-    const otherProfileId = isArtist ? (booking.client as any)?.id : (booking.artist as any)?.id
-    if (!otherProfileId) return
+    setMessaging(true)
+    const otherProfileId = isArtist
+      ? (booking.artist as any)?.id === profile.id ? (booking.client as any)?.id : (booking.artist as any)?.id
+      : (booking.artist as any)?.id
+    if (!otherProfileId) { setMessaging(false); return }
 
-    const { data: myConvs } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('profile_id', profile.id)
-
-    const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
-
-    if (myConvIds.length > 0) {
-      const { data: shared } = await supabase
+    try {
+      // Check for existing conversation
+      const { data: myConvs } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
-        .eq('profile_id', otherProfileId)
-        .in('conversation_id', myConvIds)
+        .eq('profile_id', profile.id)
 
-      if (shared && shared.length > 0) {
-        window.location.href = `/messages/${shared[0].conversation_id}`
-        return
+      const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
+
+      if (myConvIds.length > 0) {
+        const { data: shared } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('profile_id', otherProfileId)
+          .in('conversation_id', myConvIds)
+        if (shared && shared.length > 0) {
+          window.location.href = `/messages/${shared[0].conversation_id}`
+          return
+        }
       }
-    }
 
-    const { data: conv } = await supabase
-      .from('conversations').insert({}).select().single()
-    if (conv) {
+      // Pre-generate UUID so we never need to SELECT back the conversation
+      // (avoids RLS blocking the returning clause before participants exist)
+      const convId = crypto.randomUUID()
+      await supabase.from('conversations').insert({ id: convId })
       await supabase.from('conversation_participants').insert([
-        { conversation_id: conv.id, profile_id: profile.id },
-        { conversation_id: conv.id, profile_id: otherProfileId },
+        { conversation_id: convId, profile_id: profile.id },
+        { conversation_id: convId, profile_id: otherProfileId },
       ])
-      window.location.href = `/messages/${conv.id}`
+      window.location.href = `/messages/${convId}`
+    } catch {
+      setMessaging(false)
     }
   }
 
@@ -135,8 +162,9 @@ export default function BookingDetailPage() {
     )
   }
 
-  const other = isArtist ? booking.client as any : booking.artist as any
+  const other = isArtist ? (booking.client as any) : (booking.artist as any)
   const hasReview = (booking.review as any)?.length > 0
+  const signedImages = (booking as any).signedImages as { id: string; url: string }[]
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -148,8 +176,8 @@ export default function BookingDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/40 font-display text-xl flex-shrink-0">
-            {other?.display_name?.[0] ?? '?'}
+          <div className="w-12 h-12 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-xl flex-shrink-0">
+            {other?.display_name?.[0]?.toUpperCase() ?? '?'}
           </div>
           <div>
             <h1 className="font-display text-2xl text-white tracking-wide">
@@ -223,11 +251,29 @@ export default function BookingDetailPage() {
         </p>
       </div>
 
+      {/* Reference photos */}
+      {signedImages.length > 0 && (
+        <div className="ink-card p-5">
+          <p className="text-xs text-white/30 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <Image size={12} /> Reference Photos ({signedImages.length})
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {signedImages.map(img => (
+              <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer">
+                <div className="aspect-square rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity">
+                  <img src={img.url} alt="Reference" className="w-full h-full object-cover" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Artist actions */}
       {isArtist && booking.status === 'pending' && (
         <div className="ink-card p-5 space-y-4">
           <h3 className="text-sm font-medium text-white">Respond to this request</h3>
-          {showNoteForm && (
+          {showNoteForm ? (
             <textarea
               value={artistNote}
               onChange={e => setArtistNote(e.target.value)}
@@ -235,12 +281,8 @@ export default function BookingDetailPage() {
               rows={2}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/50 resize-none"
             />
-          )}
-          {!showNoteForm && (
-            <button
-              onClick={() => setShowNoteForm(true)}
-              className="text-xs text-white/30 hover:text-white transition-colors"
-            >
+          ) : (
+            <button onClick={() => setShowNoteForm(true)} className="text-xs text-white/30 hover:text-white transition-colors">
               + Add a note to client
             </button>
           )}
@@ -310,10 +352,7 @@ export default function BookingDetailPage() {
               </div>
             </>
           ) : (
-            <button
-              onClick={() => setShowReviewForm(true)}
-              className="flex items-center gap-2 text-sm text-[#e63946] hover:text-[#ff5a65] transition-colors"
-            >
+            <button onClick={() => setShowReviewForm(true)} className="flex items-center gap-2 text-sm text-[#e63946] hover:text-[#ff5a65] transition-colors">
               <Star size={16} /> Leave a Review
             </button>
           )}
@@ -338,10 +377,11 @@ export default function BookingDetailPage() {
       {/* Message button */}
       <button
         onClick={openConversation}
-        className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors"
+        disabled={messaging}
+        className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors disabled:opacity-50"
       >
-        <MessageSquare size={16} />
-        Message {other?.display_name}
+        {messaging ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+        {messaging ? 'Opening...' : `Message ${other?.display_name}`}
       </button>
     </div>
   )
