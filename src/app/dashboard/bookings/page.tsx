@@ -253,10 +253,10 @@ export default function BookingsPage() {
 
                     {/* Message link */}
                     <Link
-                      href="/messages"
+                      href={`/dashboard/bookings/${booking.id}`}
                       className="text-xs text-white/30 hover:text-[#e63946] transition-colors"
                     >
-                      Open conversation →
+                      View details & message →
                     </Link>
                   </div>
                 )}
