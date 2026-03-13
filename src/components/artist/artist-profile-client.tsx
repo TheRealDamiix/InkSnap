@@ -92,12 +92,16 @@ export function ArtistProfileClient({ artist }: Props) {
   })
 
   const startConversation = async () => {
-    if (!profile) { router.push('/auth/login'); return }
-    const { data: existing } = await supabase
+    if (!profile) { window.location.href = '/auth/login'; return }
+
+    // Find existing conversation between the two profiles
+    const { data: myConvs } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
       .eq('profile_id', profile.id)
-    const myConvIds = existing?.map(e => e.conversation_id) ?? []
+
+    const myConvIds = myConvs?.map(e => e.conversation_id) ?? []
+
     if (myConvIds.length > 0) {
       const { data: shared } = await supabase
         .from('conversation_participants')
@@ -105,17 +109,20 @@ export function ArtistProfileClient({ artist }: Props) {
         .eq('profile_id', artist.id)
         .in('conversation_id', myConvIds)
       if (shared && shared.length > 0) {
-        router.push(`/messages/${shared[0].conversation_id}`)
+        window.location.href = `/messages/${shared[0].conversation_id}`
         return
       }
     }
-    const { data: conv } = await supabase.from('conversations').insert({}).select().single()
+
+    // No existing conversation — create one
+    const { data: conv } = await supabase
+      .from('conversations').insert({}).select().single()
     if (conv) {
       await supabase.from('conversation_participants').insert([
         { conversation_id: conv.id, profile_id: profile.id },
         { conversation_id: conv.id, profile_id: artist.id },
       ])
-      router.push(`/messages/${conv.id}`)
+      window.location.href = `/messages/${conv.id}`
     }
   }
 
@@ -126,9 +133,14 @@ export function ArtistProfileClient({ artist }: Props) {
     <div className="min-h-screen bg-[#0a0a0b]">
       {/* Header bar */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-md">
-        <span className="font-display text-2xl text-white tracking-wider">INKSNAP</span>
+        <a href="/dashboard" className="font-display text-2xl text-white tracking-wider hover:text-[#e63946] transition-colors">INKSNAP</a>
         {profile ? (
-          <span className="text-sm text-white/40">{profile.display_name}</span>
+          <a href="/dashboard" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
+            <div className="w-7 h-7 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-sm">
+              {profile.display_name[0].toUpperCase()}
+            </div>
+            {profile.display_name}
+          </a>
         ) : (
           <a href="/auth/login" className="text-sm text-[#e63946]">Sign in</a>
         )}
