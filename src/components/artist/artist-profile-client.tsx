@@ -94,16 +94,28 @@ export function ArtistProfileClient({ artist }: Props) {
   const startConversation = async () => {
     if (!profile) { window.location.href = '/auth/login'; return }
 
-    // find_conversation is SECURITY DEFINER — no RLS recursion
-    const { data: existingId } = await supabase.rpc('find_conversation', {
-      other_profile_id: artist.id,
-    })
-    if (existingId) {
-      window.location.href = `/messages/${existingId}`
-      return
+    // Find existing conversation via direct queries (cp_select = true)
+    const { data: myConvs } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('profile_id', profile.id)
+
+    const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
+
+    if (myConvIds.length > 0) {
+      const { data: shared } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('profile_id', artist.id)
+        .in('conversation_id', myConvIds)
+        .limit(1)
+      if (shared?.length) {
+        window.location.href = `/messages/${shared[0].conversation_id}`
+        return
+      }
     }
 
-    // No existing conversation — create one with pre-generated UUID
+    // No existing conversation — create one
     const convId = crypto.randomUUID()
     await supabase.from('conversations').insert({ id: convId })
     await supabase.from('conversation_participants').insert([

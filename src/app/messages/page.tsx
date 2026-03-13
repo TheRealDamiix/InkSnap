@@ -5,22 +5,26 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { createClient } from '@/lib/supabase/client'
-import { MessageSquare, Loader2 } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 
-type ConvRow = {
+type Conv = {
   conversation_id: string
   unread_count: number
-  other_profile_id: string
-  other_display_name: string
-  other_username: string
-  other_avatar_url: string | null
-  other_role: string
-  last_message_body: string | null
-  last_message_name: string | null
-  last_message_type: string | null
-  last_message_at: string | null
+  other: {
+    id: string
+    display_name: string
+    username: string
+    avatar_url: string | null
+    role: string
+  } | null
+  lastMessage: {
+    body: string | null
+    attachment_name: string | null
+    attachment_type: string | null
+    created_at: string
+  } | null
 }
 
 function SkeletonRow() {
@@ -35,17 +39,64 @@ function SkeletonRow() {
   )
 }
 
+function lastMsgPreview(conv: Conv) {
+  const m = conv.lastMessage
+  if (!m) return 'No messages yet'
+  if (m.body) return m.body
+  if (m.attachment_type?.startsWith('image/')) return '📷 Photo'
+  if (m.attachment_name) return `📎 ${m.attachment_name}`
+  return 'Attachment'
+}
+
 export default function MessagesPage() {
   const { profile, loading: authLoading } = useAuthStore()
-  const [conversations, setConversations] = useState<ConvRow[]>([])
+  const [conversations, setConversations] = useState<Conv[]>([])
   const [loading, setLoading] = useState(true)
   const supabaseRef = useRef(createClient())
   const supabase = supabaseRef.current
 
   const load = useCallback(async () => {
     if (!profile) return
-    const { data, error } = await supabase.rpc('get_my_conversations')
-    setConversations((data as ConvRow[]) ?? [])
+
+    // 1. My participations
+    const { data: myParts } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, unread_count')
+      .eq('profile_id', profile.id)
+
+    if (!myParts?.length) { setConversations([]); setLoading(false); return }
+
+    const convIds = myParts.map(p => p.conversation_id)
+
+    // 2. Other participants (cp_select = true so this works)
+    const { data: others } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, profile:profiles!conversation_participants_profile_id_fkey(id, display_name, username, avatar_url, role)')
+      .in('conversation_id', convIds)
+      .neq('profile_id', profile.id)
+
+    // 3. Last message per conversation
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('conversation_id, body, attachment_name, attachment_type, created_at')
+      .in('conversation_id', convIds)
+      .order('created_at', { ascending: false })
+
+    const lastMsgMap: Record<string, any> = {}
+    msgs?.forEach(m => { if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m })
+
+    const enriched: Conv[] = myParts.map(p => ({
+      conversation_id: p.conversation_id,
+      unread_count: p.unread_count ?? 0,
+      other: (others?.find(o => o.conversation_id === p.conversation_id)?.profile as any) ?? null,
+      lastMessage: lastMsgMap[p.conversation_id] ?? null,
+    })).sort((a, b) => {
+      const ta = a.lastMessage?.created_at ?? ''
+      const tb = b.lastMessage?.created_at ?? ''
+      return tb.localeCompare(ta)
+    })
+
+    setConversations(enriched)
     setLoading(false)
   }, [profile?.id])
 
@@ -55,14 +106,13 @@ export default function MessagesPage() {
 
     const channel = supabase
       .channel(`inbox:${profile.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, load)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_participants' }, load)
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [profile?.id, load])
 
-  // Auth loading — show spinner so middleware redirect doesn't look like a blank page
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
@@ -73,17 +123,8 @@ export default function MessagesPage() {
 
   if (!profile) return null
 
-  const lastMsgPreview = (conv: ConvRow) => {
-    if (!conv.last_message_at) return 'No messages yet'
-    if (conv.last_message_body) return conv.last_message_body
-    if (conv.last_message_type?.startsWith('image/')) return '📷 Photo'
-    if (conv.last_message_name) return `📎 ${conv.last_message_name}`
-    return 'Attachment'
-  }
-
   return (
     <div className="min-h-screen bg-[#0a0a0b]">
-      {/* Header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0b]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center gap-4">
         <Link href="/dashboard" className="font-display text-xl text-white tracking-wider hidden sm:block hover:text-[#e63946] transition-colors">
           INKSNAP
@@ -92,12 +133,9 @@ export default function MessagesPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Loading skeletons */}
         {loading ? (
           <div className="space-y-2">
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
+            <SkeletonRow /><SkeletonRow /><SkeletonRow />
           </div>
         ) : conversations.length === 0 ? (
           <div className="text-center py-20">
@@ -115,20 +153,17 @@ export default function MessagesPage() {
                 href={`/messages/${conv.conversation_id}`}
                 className="ink-card flex items-center gap-3 p-4 hover:scale-[1.01] transition-transform"
               >
-                {/* Avatar */}
                 <div className="w-11 h-11 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-lg flex-shrink-0">
-                  {conv.other_display_name?.[0]?.toUpperCase() ?? '?'}
+                  {conv.other?.display_name?.[0]?.toUpperCase() ?? '?'}
                 </div>
-
-                {/* Text */}
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-white truncate">
-                      {conv.other_display_name}
+                      {conv.other?.display_name ?? 'Unknown'}
                     </span>
-                    {conv.last_message_at && (
+                    {conv.lastMessage?.created_at && (
                       <span className="text-[11px] text-white/25 flex-shrink-0">
-                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })} ago
+                        {formatDistanceToNow(new Date(conv.lastMessage.created_at), { addSuffix: false })} ago
                       </span>
                     )}
                   </div>
@@ -136,8 +171,6 @@ export default function MessagesPage() {
                     {lastMsgPreview(conv)}
                   </div>
                 </div>
-
-                {/* Unread badge */}
                 {conv.unread_count > 0 && (
                   <div className="w-5 h-5 rounded-full bg-[#e63946] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                     {conv.unread_count > 9 ? '9+' : conv.unread_count}
