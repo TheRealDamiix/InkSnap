@@ -142,6 +142,7 @@ create policy "chat_attachments_delete" on storage.objects
 -- =========================================================
 -- 10. Email-or-username login helper
 -- =========================================================
+drop function if exists public.get_email_for_login(text);
 create or replace function public.get_email_for_login(p_identifier text)
 returns text
 language sql
