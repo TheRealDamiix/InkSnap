@@ -128,8 +128,8 @@ export function SignupForm() {
           {/* Role selector */}
           <div className="grid grid-cols-2 gap-3 mb-7">
             {[
-              { value: 'client', label: 'Client', desc: 'Find & book artists', icon: <User size={20} /> },
-              { value: 'artist', label: 'Artist', desc: 'Showcase your work', icon: <Palette size={20} /> },
+              { value: 'client', label: 'Client', desc: 'Find & book artists', icon: <User size={20} />, activeClass: 'border-[#e63946]/60 bg-[#e63946]/10', activeIcon: 'text-[#e63946]' },
+              { value: 'artist', label: 'Artist', desc: 'Showcase your work', icon: <Palette size={20} />, activeClass: 'border-[#f5c518]/60 bg-[#f5c518]/10', activeIcon: 'text-[#f5c518]' },
             ].map((r) => (
               <button
                 key={r.value}
@@ -137,11 +137,11 @@ export function SignupForm() {
                 onClick={() => setValue('role', r.value as 'client' | 'artist')}
                 className={`p-4 rounded-xl border text-left transition-all ${
                   selectedRole === r.value
-                    ? 'border-[#e63946]/60 bg-[#e63946]/10'
+                    ? r.activeClass
                     : 'border-white/10 bg-white/5 hover:border-white/20'
                 }`}
               >
-                <div className={`mb-2 ${selectedRole === r.value ? 'text-[#e63946]' : 'text-white/40'}`}>
+                <div className={`mb-2 ${selectedRole === r.value ? r.activeIcon : 'text-white/40'}`}>
                   {r.icon}
                 </div>
                 <div className="text-sm font-medium text-white">{r.label}</div>

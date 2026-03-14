@@ -128,7 +128,7 @@ export function ArtistOverview() {
                         <span className="text-xs text-white/30">{booking.size}</span>
                       )}
                       {booking.budget_range && (
-                        <span className="text-xs text-white/30">{booking.budget_range}</span>
+                        <span className="text-xs text-[#f5c518]/70">{booking.budget_range}</span>
                       )}
                     </div>
                   )}

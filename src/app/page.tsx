@@ -26,9 +26,9 @@ export default function HomePage() {
         </div>
 
         <div className="max-w-5xl mx-auto relative">
-          <div className="inline-flex items-center gap-2 bg-[#e63946]/10 border border-[#e63946]/20 rounded-full px-4 py-1.5 mb-8">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#e63946] animate-pulse" />
-            <span className="text-xs text-[#e63946] font-medium tracking-wide uppercase">Now live in your city</span>
+          <div className="inline-flex items-center gap-2 bg-[#f5c518]/10 border border-[#f5c518]/20 rounded-full px-4 py-1.5 mb-8">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#f5c518] animate-pulse" />
+            <span className="text-xs text-[#f5c518] font-medium tracking-wide uppercase">Now live in your city</span>
           </div>
 
           <h1 className="font-display text-[clamp(4rem,12vw,9rem)] leading-none tracking-wide text-white mb-6">
@@ -85,20 +85,23 @@ export default function HomePage() {
                 icon: <Search size={24} />,
                 title: 'Discover',
                 body: 'Search by style, location, or artist name. Browse portfolios and find your perfect match.',
+                accent: 'bg-[#e63946]/10 border-[#e63946]/20 text-[#e63946]',
               },
               {
                 icon: <MapPin size={24} />,
                 title: 'Book',
                 body: 'Send a booking request with your ideas, reference images, and preferred dates.',
+                accent: 'bg-[#e63946]/10 border-[#e63946]/20 text-[#e63946]',
               },
               {
                 icon: <Star size={24} />,
                 title: 'Review',
                 body: 'After your appointment, leave a review and help the community find great artists.',
+                accent: 'bg-[#f5c518]/10 border-[#f5c518]/20 text-[#f5c518]',
               },
             ].map((f) => (
               <div key={f.title} className="ink-card p-7 group">
-                <div className="w-10 h-10 rounded-lg bg-[#e63946]/10 border border-[#e63946]/20 flex items-center justify-center text-[#e63946] mb-5">
+                <div className={`w-10 h-10 rounded-lg border flex items-center justify-center mb-5 ${f.accent}`}>
                   {f.icon}
                 </div>
                 <h3 className="font-display text-2xl text-white tracking-wide mb-3">{f.title}</h3>

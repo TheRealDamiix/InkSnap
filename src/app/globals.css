@@ -17,6 +17,8 @@
   --ink-red: #e63946;
   --ink-red-dim: rgba(230, 57, 70, 0.15);
   --ink-red-glow: rgba(230, 57, 70, 0.3);
+  --ink-yellow: #f5c518;
+  --ink-yellow-dim: rgba(245, 197, 24, 0.15);
 
   /* Text */
   --ink-text: #f0eeea;
@@ -146,7 +148,7 @@ body {
 }
 
 /* Star rating */
-.star-filled { color: #e63946; }
+.star-filled { color: #f5c518; }
 .star-empty { color: #2a2a2e; }
 
 /* Message bubble */

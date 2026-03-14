@@ -214,7 +214,7 @@ function SearchContent() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-5">
           <p className="text-sm text-white/40">
-            {loading ? 'Searching...' : `${artists.length} artists found`}
+            {loading ? 'Searching...' : <><span className="text-[#f5c518] font-medium">{artists.length}</span> artists found</>}
             {city && ` in ${city}`}
           </p>
         </div>

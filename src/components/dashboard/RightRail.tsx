@@ -121,9 +121,9 @@ function ArtistRail({ profile }: { profile: Profile }) {
             </span>
           </div>
           <div className="flex items-center gap-2.5">
-            <Star size={14} className="text-[#e63946] shrink-0" />
+            <Star size={14} className="text-[#f5c518] shrink-0" />
             <span className="text-white/50 text-sm flex-1">Avg Rating</span>
-            <span className="font-semibold text-white text-sm">
+            <span className={`font-semibold text-sm ${stats?.reviewCount ? 'text-[#f5c518]' : 'text-white'}`}>
               {stats?.reviewCount ? stats.avgRating : '—'}
               {stats?.reviewCount ? <span className="text-white/30 text-xs ml-1">({stats.reviewCount})</span> : null}
             </span>

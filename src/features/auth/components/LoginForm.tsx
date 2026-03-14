@@ -138,7 +138,7 @@ export function LoginForm() {
                 onClick={() => setRememberMe(!rememberMe)}
                 className={`w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${
                   rememberMe
-                    ? 'bg-[#e63946] border-[#e63946]'
+                    ? 'bg-[#f5c518] border-[#f5c518]'
                     : 'border-white/20 bg-white/5'
                 }`}
               >

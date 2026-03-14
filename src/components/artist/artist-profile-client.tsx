@@ -206,7 +206,7 @@ export function ArtistProfileClient({ artist }: Props) {
           {/* Meta */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-5 text-sm text-white/40">
             {artist.city && <span className="flex items-center gap-1"><MapPin size={13} />{artist.city}{artist.state ? `, ${artist.state}` : ''}</span>}
-            {avgRating && <span className="flex items-center gap-1"><Star size={13} className="text-[#e63946]" />{avgRating} ({artist.reviews.length} reviews)</span>}
+            {avgRating && <span className="flex items-center gap-1"><Star size={13} className="text-[#f5c518]" />{avgRating} ({artist.reviews.length} reviews)</span>}
             {artist.years_experience && <span>{artist.years_experience} years experience</span>}
             {artist.instagram && (
               <a href={`https://instagram.com/${artist.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
@@ -300,7 +300,7 @@ export function ArtistProfileClient({ artist }: Props) {
                     </div>
                     <div className="flex items-center gap-0.5">
                       {[1,2,3,4,5].map(i => (
-                        <Star key={i} size={14} className={i <= review.rating ? 'text-[#e63946] fill-current' : 'text-white/10 fill-current'} />
+                        <Star key={i} size={14} className={i <= review.rating ? 'text-[#f5c518] fill-current' : 'text-white/10 fill-current'} />
                       ))}
                     </div>
                   </div>

@@ -26,7 +26,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 const TYPE_CONFIG = {
-  flash_deal: { label: 'Flash Deal', icon: <Zap size={16} />, color: 'text-[#e63946] bg-[#e63946]/10 border-[#e63946]/20' },
+  flash_deal: { label: 'Flash Deal', icon: <Zap size={16} />, color: 'text-[#f5c518] bg-[#f5c518]/10 border-[#f5c518]/20' },
   update: { label: 'Artist Update', icon: <Bell size={16} />, color: 'text-blue-400 bg-blue-400/10 border-blue-400/20' },
   convention: { label: 'Convention', icon: <MapPin size={16} />, color: 'text-purple-400 bg-purple-400/10 border-purple-400/20' },
 }

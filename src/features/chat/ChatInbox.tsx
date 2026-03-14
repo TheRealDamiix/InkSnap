@@ -207,7 +207,7 @@ export function ChatInbox() {
                           {preview}
                         </span>
                         {conv.unread_count > 0 && (
-                          <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#e63946] text-white text-[10px] font-semibold flex items-center justify-center">
+                          <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#f5c518] text-black text-[10px] font-semibold flex items-center justify-center">
                             {conv.unread_count > 9 ? '9+' : conv.unread_count}
                           </span>
                         )}

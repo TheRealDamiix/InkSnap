@@ -195,7 +195,7 @@ export default function BookingsPage() {
                                 <button key={i} onClick={() => setReviewRating(i)}>
                                   <Star
                                     size={24}
-                                    className={i <= reviewRating ? 'text-[#e63946] fill-current' : 'text-white/20 fill-current'}
+                                    className={i <= reviewRating ? 'text-[#f5c518] fill-current' : 'text-white/20 fill-current'}
                                   />
                                 </button>
                               ))}

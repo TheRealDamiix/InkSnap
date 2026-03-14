@@ -11,7 +11,7 @@ import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS } from '@/lib/constants'
 import { formatDistanceToNow, format } from 'date-fns'
 
 const PROMO_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  flash_deal:  { label: '⚡ Flash Deal',  color: 'text-[#e63946] bg-[#e63946]/10' },
+  flash_deal:  { label: '⚡ Flash Deal',  color: 'text-[#f5c518] bg-[#f5c518]/10' },
   convention:  { label: '📍 Convention',  color: 'text-purple-400 bg-purple-400/10' },
   update:      { label: '📢 Update',       color: 'text-white/50 bg-white/5' },
 }

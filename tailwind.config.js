@@ -18,6 +18,7 @@ module.exports = {
           surface: '#18181c',
           raised: '#1f1f24',
           red: '#e63946',
+          yellow: '#f5c518',
           text: '#f0eeea',
           muted: '#8a8885',
           faint: '#4a4846',
