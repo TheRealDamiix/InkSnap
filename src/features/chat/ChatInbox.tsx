@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, MoreVertical, Trash2 } from 'lucide-react'
+import { ArrowLeft, MessageCircle, MoreVertical, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useConversations } from './useChat'
@@ -142,7 +142,14 @@ export function ChatInbox() {
 
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="px-6 py-6 border-b border-white/5">
+        <div className="px-4 py-4 border-b border-white/5 flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="text-white/40 hover:text-white transition-colors p-1 -ml-1"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft size={20} />
+          </Link>
           <h1 className="text-xl font-semibold text-white">Messages</h1>
         </div>
 
