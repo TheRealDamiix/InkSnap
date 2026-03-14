@@ -53,7 +53,7 @@ export default function SavedArtistsPage() {
   if (!profile || profile.role !== 'client') return null
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="font-display text-4xl text-white tracking-wide">SAVED ARTISTS</h1>
         <p className="text-white/40 mt-1">{saved.length} bookmarked</p>

@@ -82,7 +82,7 @@ export default function ProfilePage() {
   if (!profile) return null
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="p-4 md:p-6 space-y-6 max-w-2xl">
       <div>
         <h1 className="font-display text-4xl text-white tracking-wide">EDIT PROFILE</h1>
         <p className="text-white/40 mt-1">Update your public profile information</p>
