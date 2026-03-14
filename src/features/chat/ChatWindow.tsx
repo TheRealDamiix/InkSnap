@@ -59,15 +59,22 @@ function MsgBubbleSkeleton({ right }: { right?: boolean }) {
 }
 
 // ── Message bubble ────────────────────────────────────────────
-function Bubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }) {
-  const isImage  = msg.attachment_type?.startsWith('image/')
-  // Derive a readable filename from the URL when attachment_name isn't stored
+function Bubble({
+  msg,
+  isMine,
+  isLast,
+}: {
+  msg: ChatMessage
+  isMine: boolean
+  isLast: boolean
+}) {
+  const isImage = msg.attachment_type?.startsWith('image/')
   const fileName = msg.attachment_url
     ? decodeURIComponent(msg.attachment_url.split('/').pop()?.split('?')[0] ?? 'file')
     : 'file'
 
   return (
-    <div className="max-w-[72%] space-y-1">
+    <div className={`flex flex-col gap-1 max-w-[72%] ${isMine ? 'items-end' : 'items-start'}`}>
       {/* Attachment */}
       {msg.attachment_url && (
         <div
@@ -103,20 +110,17 @@ function Bubble({ msg, isMine }: { msg: ChatMessage; isMine: boolean }) {
       {/* Text body */}
       {msg.body && (
         <div
-          className={`${
+          className={`px-4 py-2.5 text-sm leading-relaxed ${
             isMine ? 'message-bubble-sent' : 'message-bubble-received'
-          } px-4 py-2.5 text-sm leading-relaxed`}
+          }`}
         >
           {msg.body}
-          <div className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-white/30'}`}>
-            <MsgTime date={msg.created_at} />
-          </div>
         </div>
       )}
 
-      {/* Timestamp for attachment-only messages */}
-      {msg.attachment_url && !msg.body && (
-        <div className={`text-[10px] ${isMine ? 'text-right text-white/40' : 'text-left text-white/25'}`}>
+      {/* Timestamp — shown only on the last in a group */}
+      {isLast && (
+        <div className={`text-[10px] px-1 ${isMine ? 'text-white/35 text-right' : 'text-white/25 text-left'}`}>
           <MsgTime date={msg.created_at} />
         </div>
       )}
@@ -194,6 +198,7 @@ export function ChatWindow() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef   = useRef<HTMLInputElement>(null)
   const menuRef   = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Close the ⋮ menu when clicking outside
   useEffect(() => {
@@ -218,6 +223,14 @@ export function ChatWindow() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Auto-grow textarea
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }, [input])
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -236,7 +249,7 @@ export function ChatWindow() {
     setInput('')
     setAttachment(null)
     const ok = await sendMessage(body, file)
-    if (!ok && body) setInput(body) // restore text on failure
+    if (!ok && body) setInput(body)
   }
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -246,10 +259,9 @@ export function ChatWindow() {
     }
   }
 
-  // Auth loading guard — prevents blank flash
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+      <div className="h-[100dvh] bg-[#0a0a0b] flex items-center justify-center">
         <div className="font-display text-3xl text-white/20 tracking-wider animate-pulse">
           INKSNAP
         </div>
@@ -259,7 +271,7 @@ export function ChatWindow() {
   if (!profile) return null
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0b]">
+    <div className="flex flex-col h-[100dvh] bg-[#0a0a0b]">
 
       {/* Delete confirmation modal */}
       {confirmDelete && (
@@ -272,7 +284,7 @@ export function ChatWindow() {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-[#111114] flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-[#111114] flex-shrink-0 safe-area-top">
         <Link
           href="/messages"
           className="text-white/40 hover:text-white transition-colors p-1 -ml-1"
@@ -284,8 +296,11 @@ export function ChatWindow() {
           <PartnerSkeleton />
         ) : partner ? (
           <>
-            <div className="w-9 h-9 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-base flex-shrink-0">
-              {partner.display_name?.[0]?.toUpperCase() ?? '?'}
+            <div className="w-9 h-9 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-base flex-shrink-0 overflow-hidden">
+              {partner.avatar_url
+                ? <img src={partner.avatar_url} alt="" className="w-full h-full object-cover" />
+                : partner.display_name?.[0]?.toUpperCase() ?? '?'
+              }
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-white truncate">
@@ -332,111 +347,139 @@ export function ChatWindow() {
       </div>
 
       {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {msgsLoading ? (
-          <div className="space-y-4 pt-4">
-            <MsgBubbleSkeleton />
-            <MsgBubbleSkeleton right />
-            <MsgBubbleSkeleton />
-            <MsgBubbleSkeleton right />
-            <MsgBubbleSkeleton />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-white/20 text-sm">Start the conversation</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {messages.map((msg, i) => {
-              const isMine  = msg.sender_id === profile.id
-              const prev    = messages[i - 1]
-              const showSep =
-                i === 0 ||
-                new Date(msg.created_at).toDateString() !==
-                  new Date(prev.created_at).toDateString()
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          {msgsLoading ? (
+            <div className="space-y-4 pt-4">
+              <MsgBubbleSkeleton />
+              <MsgBubbleSkeleton right />
+              <MsgBubbleSkeleton />
+              <MsgBubbleSkeleton right />
+              <MsgBubbleSkeleton />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-white/20 text-sm">Start the conversation</p>
+            </div>
+          ) : (
+            <div className="space-y-0.5">
+              {messages.map((msg, i) => {
+                const isMine = msg.sender_id === profile.id
+                const prev   = messages[i - 1]
+                const next   = messages[i + 1]
 
-              return (
-                <div key={msg.id}>
-                  {showSep && <DateSep date={msg.created_at} />}
-                  <div
-                    className={`flex items-end gap-2 mb-1 ${
-                      isMine ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {/* Partner avatar */}
-                    {!isMine && (
-                      <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-xs flex-shrink-0">
-                        {msg.sender?.display_name?.[0]?.toUpperCase() ?? '?'}
-                      </div>
-                    )}
-                    <Bubble msg={msg} isMine={isMine} />
+                // Date separator
+                const showSep =
+                  i === 0 ||
+                  new Date(msg.created_at).toDateString() !==
+                    new Date(prev.created_at).toDateString()
+
+                // Group logic — consecutive messages from same sender
+                const sameAsPrev = !showSep && prev && prev.sender_id === msg.sender_id
+                const sameAsNext = next && next.sender_id === msg.sender_id &&
+                  new Date(next.created_at).toDateString() ===
+                    new Date(msg.created_at).toDateString()
+
+                // Show avatar only on last message in a received group
+                const showAvatar = !isMine && !sameAsNext
+
+                // Show timestamp only on last message in a group
+                const isLastInGroup = !sameAsNext
+
+                // Spacing: tighter within group, looser between groups
+                const marginTop = sameAsPrev ? 'mt-0.5' : 'mt-3'
+
+                return (
+                  <div key={msg.id} className={marginTop}>
+                    {showSep && <DateSep date={msg.created_at} />}
+
+                    <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+
+                      {/* Partner avatar placeholder — keeps spacing even when hidden */}
+                      {!isMine && (
+                        <div className="w-7 h-7 flex-shrink-0">
+                          {showAvatar ? (
+                            <div className="w-7 h-7 rounded-full bg-[#e63946]/15 flex items-center justify-center text-[#e63946] text-xs font-display overflow-hidden">
+                              {partner?.avatar_url
+                                ? <img src={partner.avatar_url} alt="" className="w-full h-full object-cover" />
+                                : msg.sender?.display_name?.[0]?.toUpperCase() ?? '?'
+                              }
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+
+                      <Bubble msg={msg} isMine={isMine} isLast={isLastInGroup} />
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <div ref={bottomRef} />
+                )
+              })}
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* ── Attachment preview bar ── */}
       {attachment && (
-        <div className="px-4 py-2 bg-[#111114] border-t border-white/5 flex items-center gap-3">
-          <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 min-w-0">
+        <div className="px-4 py-2 bg-[#111114] border-t border-white/5 flex items-center gap-3 flex-shrink-0">
+          <div className="max-w-2xl mx-auto w-full flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 min-w-0">
             {attachment.type.startsWith('image/') ? (
               <ImageIcon size={14} className="text-white/40 flex-shrink-0" />
             ) : (
               <Paperclip size={14} className="text-white/40 flex-shrink-0" />
             )}
-            <span className="text-sm text-white/70 truncate">{attachment.name}</span>
+            <span className="text-sm text-white/70 truncate flex-1">{attachment.name}</span>
             <span className="text-xs text-white/30 flex-shrink-0">
               ({(attachment.size / 1024).toFixed(0)} KB)
             </span>
+            <button
+              onClick={() => setAttachment(null)}
+              className="text-white/30 hover:text-white transition-colors flex-shrink-0"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            onClick={() => setAttachment(null)}
-            className="text-white/30 hover:text-white transition-colors flex-shrink-0"
-          >
-            <X size={16} />
-          </button>
         </div>
       )}
 
       {/* ── Input bar ── */}
-      <div className="flex items-end gap-2 px-4 py-3 border-t border-white/5 bg-[#111114] flex-shrink-0">
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          accept="image/*,.pdf,.doc,.docx,.txt,.zip"
-          onChange={handleFile}
-        />
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={sending}
-          title="Attach file (max 5 MB)"
-          className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors flex-shrink-0 disabled:opacity-40"
-        >
-          <Paperclip size={18} />
-        </button>
+      <div className="border-t border-white/5 bg-[#111114] flex-shrink-0 safe-area-bottom">
+        <div className="max-w-2xl mx-auto flex items-end gap-2 px-4 py-3">
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+            onChange={handleFile}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={sending}
+            title="Attach file (max 5 MB)"
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors flex-shrink-0 disabled:opacity-40 mb-0.5"
+          >
+            <Paperclip size={18} />
+          </button>
 
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Type a message…"
-          rows={1}
-          style={{ maxHeight: '120px' }}
-          className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/50 text-sm resize-none transition-colors"
-        />
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Type a message…"
+            rows={1}
+            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/50 text-sm resize-none transition-colors overflow-hidden"
+          />
 
-        <button
-          onClick={handleSend}
-          disabled={(!input.trim() && !attachment) || sending}
-          className="p-2.5 rounded-2xl bg-[#e63946] hover:bg-[#d42f3b] disabled:opacity-40 text-white transition-colors flex-shrink-0"
-        >
-          {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-        </button>
+          <button
+            onClick={handleSend}
+            disabled={(!input.trim() && !attachment) || sending}
+            className="p-2.5 rounded-2xl bg-[#e63946] hover:bg-[#d42f3b] disabled:opacity-40 text-white transition-colors flex-shrink-0 mb-0.5"
+          >
+            {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+          </button>
+        </div>
       </div>
     </div>
   )
