@@ -98,24 +98,6 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Social proof strip */}
-              <div className="flex items-center gap-6 mt-12">
-                <div className="flex -space-x-2">
-                  {['A','B','C','D'].map(l => (
-                    <div key={l} className="w-8 h-8 rounded-full bg-[#e63946]/20 border-2 border-[#0a0a0b] flex items-center justify-center text-[#e63946] text-[10px] font-display">
-                      {l}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex gap-0.5 mb-0.5">
-                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} size={11} className="text-[#f5c518] fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-white/30 text-xs">Trusted by artists & clients</p>
-                </div>
-              </div>
             </div>
 
             {/* ── Right: Rose image ── */}
