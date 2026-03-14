@@ -1,186 +1,10 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, MapPin, Star, Zap } from 'lucide-react'
-
-// ── Tattoo-style rose SVG illustration ────────────────────────
-function RoseIllustration() {
-  return (
-    <svg
-      viewBox="0 0 420 560"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full max-w-[480px] select-none"
-      aria-hidden="true"
-    >
-      <defs>
-        <radialGradient id="roseGlow" cx="50%" cy="40%" r="52%">
-          <stop offset="0%"   stopColor="#e63946" stopOpacity="0.18" />
-          <stop offset="60%"  stopColor="#e63946" stopOpacity="0.06" />
-          <stop offset="100%" stopColor="#e63946" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="stemGlow" cx="50%" cy="80%" r="40%">
-          <stop offset="0%"   stopColor="#e63946" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#e63946" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* ── Ambient glow ── */}
-      <ellipse cx="210" cy="215" rx="210" ry="190" fill="url(#roseGlow)" />
-      <ellipse cx="200" cy="430" rx="130" ry="110" fill="url(#stemGlow)" />
-
-      {/* ══════════════════════════════════════════
-          ROSE BLOOM  (center: 210, 215)
-          ══════════════════════════════════════════ */}
-
-      {/* Layer 1 — Outermost petals × 8 (rotate 45° each) */}
-      {[0,45,90,135,180,225,270,315].map(a => (
-        <path
-          key={`op-${a}`}
-          d="M 210 215 C 168 148 176 72 210 58 C 244 72 252 148 210 215 Z"
-          transform={`rotate(${a} 210 215)`}
-          fill="#e63946"
-          fillOpacity="0.10"
-          stroke="#e63946"
-          strokeOpacity="0.35"
-          strokeWidth="1.2"
-        />
-      ))}
-
-      {/* Layer 2 — Outer-mid petals × 5 (staggered 36°) */}
-      {[0,72,144,216,288].map(a => (
-        <path
-          key={`mp-${a}`}
-          d="M 210 215 C 186 168 188 122 210 112 C 232 122 234 168 210 215 Z"
-          transform={`rotate(${a} 210 215)`}
-          fill="#e63946"
-          fillOpacity="0.25"
-          stroke="#e63946"
-          strokeOpacity="0.55"
-          strokeWidth="1.2"
-        />
-      ))}
-
-      {/* Layer 3 — Inner-mid petals × 4 (90° each) */}
-      {[20,110,200,290].map(a => (
-        <path
-          key={`ip-${a}`}
-          d="M 210 215 C 196 190 197 170 210 164 C 223 170 224 190 210 215 Z"
-          transform={`rotate(${a} 210 215)`}
-          fill="#e63946"
-          fillOpacity="0.55"
-          stroke="#e63946"
-          strokeOpacity="0.75"
-          strokeWidth="1"
-        />
-      ))}
-
-      {/* Layer 4 — Innermost petals × 3 (tight spiral) */}
-      {[0,120,240].map(a => (
-        <path
-          key={`cp-${a}`}
-          d="M 210 215 C 204 204 204 196 210 192 C 216 196 216 204 210 215 Z"
-          transform={`rotate(${a} 210 215)`}
-          fill="#e63946"
-          fillOpacity="0.88"
-          stroke="#e63946"
-          strokeOpacity="0.95"
-          strokeWidth="0.8"
-        />
-      ))}
-
-      {/* Center jewel */}
-      <circle cx="210" cy="198" r="5.5" fill="#e63946" fillOpacity="0.95" />
-      <circle cx="210" cy="198" r="2.5" fill="#ff7a84" fillOpacity="0.7" />
-
-      {/* ── Calyx / sepals at base of bloom ── */}
-      {[0,60,120,180,240,300].map(a => (
-        <path
-          key={`sep-${a}`}
-          d="M 210 330 C 204 310 203 292 210 285 C 217 292 216 310 210 330 Z"
-          transform={`rotate(${a} 210 305)`}
-          fill="#e63946"
-          fillOpacity="0.18"
-          stroke="#e63946"
-          strokeOpacity="0.35"
-          strokeWidth="1"
-        />
-      ))}
-
-      {/* ── Petal shading lines (gives tattoo illustration feel) ── */}
-      <path d="M 210 215 C 195 190 186 155 192 112"
-            stroke="#e63946" strokeOpacity="0.18" strokeWidth="0.7" fill="none" />
-      <path d="M 210 215 C 222 188 230 152 228 112"
-            stroke="#e63946" strokeOpacity="0.18" strokeWidth="0.7" fill="none" />
-      <path d="M 210 215 C 178 200 158 175 160 140"
-            stroke="#e63946" strokeOpacity="0.15" strokeWidth="0.7" fill="none" />
-      <path d="M 210 215 C 240 200 262 175 260 140"
-            stroke="#e63946" strokeOpacity="0.15" strokeWidth="0.7" fill="none" />
-
-      {/* ══════════════════════════════════════════
-          STEM
-          ══════════════════════════════════════════ */}
-      <path
-        d="M 210 335 C 206 380 200 420 196 500"
-        stroke="#e63946"
-        strokeOpacity="0.45"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      {/* Stem center line (double-line style) */}
-      <path
-        d="M 207 350 C 203 390 198 425 195 495"
-        stroke="#e63946"
-        strokeOpacity="0.15"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeDasharray="4 8"
-      />
-
-      {/* ── Left thorn ── */}
-      <path
-        d="M 204 370 C 196 360 186 354 178 344"
-        stroke="#e63946" strokeOpacity="0.5" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* ── Right thorn ── */}
-      <path
-        d="M 201 415 C 213 404 224 400 234 390"
-        stroke="#e63946" strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round"
-      />
-
-      {/* ── Left leaf ── */}
-      <path
-        d="M 202 380 C 185 362 158 350 138 332 C 152 345 174 355 202 380 Z"
-        fill="#e63946" fillOpacity="0.14"
-        stroke="#e63946" strokeOpacity="0.40" strokeWidth="1.2"
-      />
-      {/* Left leaf vein */}
-      <path
-        d="M 202 380 C 178 363 158 350 138 332"
-        stroke="#e63946" strokeOpacity="0.22" strokeWidth="0.8" strokeLinecap="round"
-      />
-
-      {/* ── Right leaf ── */}
-      <path
-        d="M 204 432 C 226 412 254 400 272 382 C 252 396 226 408 204 432 Z"
-        fill="#e63946" fillOpacity="0.14"
-        stroke="#e63946" strokeOpacity="0.38" strokeWidth="1.2"
-      />
-      {/* Right leaf vein */}
-      <path
-        d="M 204 432 C 228 413 252 400 272 382"
-        stroke="#e63946" strokeOpacity="0.20" strokeWidth="0.8" strokeLinecap="round"
-      />
-
-      {/* ── Decorative dots (tattoo detail) ── */}
-      <circle cx="148" cy="345" r="2" fill="#e63946" fillOpacity="0.25" />
-      <circle cx="270" cy="385" r="1.5" fill="#e63946" fillOpacity="0.22" />
-      <circle cx="180" cy="462" r="1.5" fill="#e63946" fillOpacity="0.18" />
-    </svg>
-  )
-}
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0b] overflow-x-hidden">
+    <div className="bg-[#0a0a0b] overflow-x-hidden">
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-md">
@@ -204,7 +28,7 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════
           HERO
           ══════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center">
+      <section className="relative pt-24">
 
         {/* Background glows */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -221,11 +45,11 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 w-full pt-28 pb-16 lg:py-0">
-          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-4 items-center min-h-screen lg:min-h-0 lg:h-screen">
+        <div className="max-w-7xl mx-auto px-6 w-full">
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center py-16 lg:py-24">
 
             {/* ── Left: Text content ── */}
-            <div className="flex flex-col justify-center lg:py-32">
+            <div className="flex flex-col justify-center">
 
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-[#f5c518]/10 border border-[#f5c518]/20 rounded-full px-4 py-1.5 mb-10 w-fit">
@@ -237,7 +61,7 @@ export default function HomePage() {
 
               {/* Headline */}
               <h1 className="font-display leading-[0.88] tracking-wide text-white mb-8"
-                  style={{ fontSize: 'clamp(4.5rem, 11vw, 9.5rem)' }}>
+                  style={{ fontSize: 'clamp(4rem, 10vw, 9rem)' }}>
                 FIND<br />
                 YOUR<br />
                 <span style={{
@@ -294,18 +118,24 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* ── Right: Rose illustration ── */}
+            {/* ── Right: Rose image ── */}
             <div className="hidden lg:flex items-center justify-center relative">
               {/* Glow ring behind rose */}
               <div className="absolute w-[400px] h-[400px] rounded-full bg-[#e63946]/10 blur-3xl" />
-              {/* Faint ring border */}
               <div className="absolute w-[380px] h-[380px] rounded-full border border-[#e63946]/10" />
-              <div className="absolute w-[480px] h-[480px] rounded-full border border-[#e63946]/5" />
+              <div className="absolute w-[500px] h-[500px] rounded-full border border-[#e63946]/5" />
 
-              <div className="relative z-10">
-                <RoseIllustration />
+              <div className="relative z-10 w-[460px] h-[560px]">
+                <Image
+                  src="/rose.jpg"
+                  alt="Tattoo rose"
+                  fill
+                  className="object-contain drop-shadow-[0_0_60px_rgba(230,57,70,0.35)]"
+                  priority
+                />
               </div>
             </div>
+
           </div>
         </div>
       </section>
