@@ -11,8 +11,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ArtistProfile } from '@/types'
 import { TATTOO_STYLES } from '@/lib/constants'
-import { BookingModal } from '@/components/booking/booking-modal'
-import { getPublicUrl, BUCKETS } from '@/lib/storage'
+import { BookingModal } from '@/features/bookings'
+import { getPortfolioImageUrl } from '@/features/portfolio'
 import Image from 'next/image'
 
 interface Props {
@@ -94,35 +94,19 @@ export function ArtistProfileClient({ artist }: Props) {
   const startConversation = async () => {
     if (!profile) { window.location.href = '/auth/login'; return }
 
-    // Find existing conversation via direct queries (cp_select = true)
-    const { data: myConvs } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('profile_id', profile.id)
+    // create_conversation is a SECURITY DEFINER RPC (migration 012).
+    // It finds or creates a 1-1 conversation atomically, inserting
+    // BOTH participant rows as the function owner — bypassing the
+    // participants_insert RLS which only allows each user to insert
+    // their own row. Without this, the partner row is rejected and
+    // the conversation is left with zero participants, causing any
+    // subsequent messages INSERT to fail with 42501.
+    const { data: convId, error } = await supabase
+      .rpc('create_conversation', { p_other_profile_id: artist.id })
 
-    const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
-
-    if (myConvIds.length > 0) {
-      const { data: shared } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('profile_id', artist.id)
-        .in('conversation_id', myConvIds)
-        .limit(1)
-      if (shared?.length) {
-        window.location.href = `/messages/${shared[0].conversation_id}`
-        return
-      }
+    if (!error && convId) {
+      window.location.href = `/messages/${convId}`
     }
-
-    // No existing conversation — create one
-    const convId = crypto.randomUUID()
-    await supabase.from('conversations').insert({ id: convId })
-    await supabase.from('conversation_participants').insert([
-      { conversation_id: convId, profile_id: profile.id },
-      { conversation_id: convId, profile_id: artist.id },
-    ])
-    window.location.href = `/messages/${convId}`
   }
 
   const primaryStudio = artist.artist_studios?.find((s: any) => s.is_primary) ?? artist.artist_studios?.[0]
@@ -156,7 +140,7 @@ export function ArtistProfileClient({ artist }: Props) {
                 style={{ zIndex: i }}
               >
                 <img
-                  src={getPublicUrl(BUCKETS.PORTFOLIO, img.storage_path)}
+                  src={getPortfolioImageUrl(img.storage_path)}
                   alt=""
                   className="w-full h-full object-cover"
                 />
@@ -287,7 +271,7 @@ export function ArtistProfileClient({ artist }: Props) {
               {portfolioImages.map((img) => (
                 <div key={img.id} className="portfolio-item aspect-square rounded-xl overflow-hidden bg-white/5">
                   <img
-                    src={getPublicUrl(BUCKETS.PORTFOLIO, img.storage_path)}
+                    src={getPortfolioImageUrl(img.storage_path)}
                     alt={img.caption ?? 'Portfolio image'}
                     className="w-full h-full object-cover"
                   />

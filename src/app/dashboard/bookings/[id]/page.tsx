@@ -5,143 +5,47 @@ export const dynamic = 'force-dynamic'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import {
-  ArrowLeft, Calendar, Loader2, Star, MessageSquare, MapPin, Ruler, DollarSign, Image
+  ArrowLeft, Calendar, Loader2, Star, MessageSquare, MapPin, Ruler, DollarSign, Image,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS } from '@/lib/constants'
-import type { BookingStatus } from '@/types'
+import {
+  useBookingDetail,
+  useUpdateBookingStatus,
+  useSubmitReview,
+  useOpenConversation,
+  type BookingStatus,
+} from '@/features/bookings'
 
 export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuthStore()
-  const qc = useQueryClient()
-  const supabase = createClient()
 
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState('')
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [artistNote, setArtistNote] = useState('')
   const [showNoteForm, setShowNoteForm] = useState(false)
-  const [messaging, setMessaging] = useState(false)
 
   const isArtist = profile?.role === 'artist'
 
-  const { data: booking, isLoading } = useQuery({
-    queryKey: ['booking-detail', id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          artist:profiles!bookings_artist_id_fkey(id, display_name, username, avatar_url, city),
-          client:profiles!bookings_client_id_fkey(id, display_name, username, avatar_url),
-          review:reviews(id, rating, body)
-        `)
-        .eq('id', id)
-        .single()
+  // ── Data + mutations ───────────────────────────────────────────────────────
+  const { data: booking, isLoading } = useBookingDetail(id, profile?.id)
+  const updateStatus = useUpdateBookingStatus(profile?.id, id)
+  const submitReview = useSubmitReview(profile?.id, id)
 
-      if (!data) return null
-
-      // Fetch booking images separately and generate signed URLs
-      const { data: images } = await supabase
-        .from('booking_images')
-        .select('id, storage_path')
-        .eq('booking_id', id)
-
-      const signedImages: { id: string; url: string }[] = []
-      for (const img of images ?? []) {
-        const { data: signed } = await supabase.storage
-          .from('booking-refs')
-          .createSignedUrl(img.storage_path, 3600)
-        if (signed?.signedUrl) {
-          signedImages.push({ id: img.id, url: signed.signedUrl })
-        }
-      }
-
-      return { ...data, signedImages }
-    },
-    enabled: !!profile?.id && !!id,
-  })
-
-  const updateStatus = useMutation({
-    mutationFn: async ({ status, note }: { status: BookingStatus; note?: string }) => {
-      await supabase
-        .from('bookings')
-        .update({ status, ...(note ? { artist_note: note } : {}) })
-        .eq('id', id)
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['booking-detail', id] })
-      qc.invalidateQueries({ queryKey: ['bookings', profile?.id] })
-      qc.invalidateQueries({ queryKey: ['artist-stats', profile?.id] })
-      setShowNoteForm(false)
-      setArtistNote('')
-    },
-  })
-
-  const submitReview = useMutation({
-    mutationFn: async () => {
-      await supabase.from('reviews').insert({
-        booking_id: id,
-        artist_id: (booking?.artist as any)?.id,
-        client_id: profile!.id,
-        rating: reviewRating,
-        body: reviewBody,
-      })
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['booking-detail', id] })
-      setShowReviewForm(false)
-      setReviewBody('')
-    },
-  })
-
-  const openConversation = async () => {
-    if (!profile || !booking) return
-    setMessaging(true)
-    const otherProfileId = isArtist
-      ? (booking.artist as any)?.id === profile.id ? (booking.client as any)?.id : (booking.artist as any)?.id
+  // otherProfileId is derived from loaded booking data; undefined until ready
+  const otherProfileId = booking
+    ? isArtist
+      ? (booking.artist as any)?.id === profile?.id
+        ? (booking.client as any)?.id
+        : (booking.artist as any)?.id
       : (booking.artist as any)?.id
-    if (!otherProfileId) { setMessaging(false); return }
+    : undefined
 
-    try {
-      // Find existing conversation via direct queries (cp_select = true)
-      const { data: myConvs } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('profile_id', profile.id)
-
-      const myConvIds = myConvs?.map(c => c.conversation_id) ?? []
-
-      if (myConvIds.length > 0) {
-        const { data: shared } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('profile_id', otherProfileId)
-          .in('conversation_id', myConvIds)
-          .limit(1)
-        if (shared?.length) {
-          window.location.href = `/messages/${shared[0].conversation_id}`
-          return
-        }
-      }
-
-      // No existing conversation — create one
-      const convId = crypto.randomUUID()
-      await supabase.from('conversations').insert({ id: convId })
-      await supabase.from('conversation_participants').insert([
-        { conversation_id: convId, profile_id: profile.id },
-        { conversation_id: convId, profile_id: otherProfileId },
-      ])
-      window.location.href = `/messages/${convId}`
-    } catch {
-      setMessaging(false)
-    }
-  }
+  const openConv = useOpenConversation(profile?.id)
 
   if (!profile) return null
 
@@ -157,19 +61,24 @@ export default function BookingDetailPage() {
     return (
       <div className="text-center py-20">
         <p className="text-white/30 text-sm">Booking not found.</p>
-        <Link href="/dashboard/bookings" className="text-[#e63946] text-sm mt-3 inline-block">← Back to bookings</Link>
+        <Link href="/dashboard/bookings" className="text-[#e63946] text-sm mt-3 inline-block">
+          ← Back to bookings
+        </Link>
       </div>
     )
   }
 
   const other = isArtist ? (booking.client as any) : (booking.artist as any)
   const hasReview = (booking.review as any)?.length > 0
-  const signedImages = (booking as any).signedImages as { id: string; url: string }[]
+  const signedImages = booking.signedImages
 
   return (
     <div className="max-w-2xl space-y-6">
       {/* Back */}
-      <Link href="/dashboard/bookings" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
+      <Link
+        href="/dashboard/bookings"
+        className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors"
+      >
         <ArrowLeft size={16} /> Back to Bookings
       </Link>
 
@@ -203,37 +112,49 @@ export default function BookingDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {booking.body_placement && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><MapPin size={10} /> Placement</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <MapPin size={10} /> Placement
+              </p>
               <p className="text-white/70 text-sm">{booking.body_placement}</p>
             </div>
           )}
           {booking.size && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><Ruler size={10} /> Size</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <Ruler size={10} /> Size
+              </p>
               <p className="text-white/70 text-sm">{booking.size}</p>
             </div>
           )}
           {booking.budget_range && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><DollarSign size={10} /> Budget</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <DollarSign size={10} /> Budget
+              </p>
               <p className="text-white/70 text-sm">{booking.budget_range}</p>
             </div>
           )}
           {booking.preferred_date_1 && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={10} /> Preferred Date</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <Calendar size={10} /> Preferred Date
+              </p>
               <p className="text-white/70 text-sm">{format(new Date(booking.preferred_date_1), 'MMM d, yyyy')}</p>
             </div>
           )}
           {booking.preferred_date_2 && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={10} /> Alt. Date</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <Calendar size={10} /> Alt. Date
+              </p>
               <p className="text-white/70 text-sm">{format(new Date(booking.preferred_date_2), 'MMM d, yyyy')}</p>
             </div>
           )}
           {booking.confirmed_date && (
             <div>
-              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={10} /> Confirmed</p>
+              <p className="text-xs text-white/30 uppercase tracking-widest mb-1 flex items-center gap-1">
+                <Calendar size={10} /> Confirmed
+              </p>
               <p className="text-emerald-400 text-sm font-medium">{format(new Date(booking.confirmed_date), 'MMM d, yyyy')}</p>
             </div>
           )}
@@ -269,7 +190,7 @@ export default function BookingDetailPage() {
         </div>
       )}
 
-      {/* Artist actions */}
+      {/* Artist: respond to pending */}
       {isArtist && booking.status === 'pending' && (
         <div className="ink-card p-5 space-y-4">
           <h3 className="text-sm font-medium text-white">Respond to this request</h3>
@@ -282,20 +203,33 @@ export default function BookingDetailPage() {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/50 resize-none"
             />
           ) : (
-            <button onClick={() => setShowNoteForm(true)} className="text-xs text-white/30 hover:text-white transition-colors">
+            <button
+              onClick={() => setShowNoteForm(true)}
+              className="text-xs text-white/30 hover:text-white transition-colors"
+            >
               + Add a note to client
             </button>
           )}
           <div className="flex gap-3">
             <button
-              onClick={() => updateStatus.mutate({ status: 'confirmed', note: artistNote || undefined })}
+              onClick={() =>
+                updateStatus.mutate(
+                  { status: 'confirmed', note: artistNote || undefined },
+                  { onSuccess: () => { setShowNoteForm(false); setArtistNote('') } }
+                )
+              }
               disabled={updateStatus.isPending}
               className="flex-1 py-2.5 rounded-xl bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 text-sm font-medium hover:bg-emerald-400/20 transition-colors disabled:opacity-50"
             >
               {updateStatus.isPending ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Confirm Booking'}
             </button>
             <button
-              onClick={() => updateStatus.mutate({ status: 'declined', note: artistNote || undefined })}
+              onClick={() =>
+                updateStatus.mutate(
+                  { status: 'declined', note: artistNote || undefined },
+                  { onSuccess: () => { setShowNoteForm(false); setArtistNote('') } }
+                )
+              }
               disabled={updateStatus.isPending}
               className="flex-1 py-2.5 rounded-xl bg-red-400/10 border border-red-400/30 text-red-400 text-sm font-medium hover:bg-red-400/20 transition-colors disabled:opacity-50"
             >
@@ -305,6 +239,7 @@ export default function BookingDetailPage() {
         </div>
       )}
 
+      {/* Artist: mark completed */}
       {isArtist && booking.status === 'confirmed' && (
         <div className="ink-card p-5">
           <button
@@ -325,9 +260,12 @@ export default function BookingDetailPage() {
             <>
               <h3 className="text-sm font-medium text-white">Leave a Review</h3>
               <div className="flex gap-2">
-                {[1,2,3,4,5].map(i => (
+                {[1, 2, 3, 4, 5].map(i => (
                   <button key={i} onClick={() => setReviewRating(i)}>
-                    <Star size={28} className={i <= reviewRating ? 'text-[#e63946] fill-current' : 'text-white/20 fill-current'} />
+                    <Star
+                      size={28}
+                      className={i <= reviewRating ? 'text-[#e63946] fill-current' : 'text-white/20 fill-current'}
+                    />
                   </button>
                 ))}
               </div>
@@ -340,32 +278,59 @@ export default function BookingDetailPage() {
               />
               <div className="flex gap-3">
                 <button
-                  onClick={() => submitReview.mutate()}
+                  onClick={() =>
+                    submitReview.mutate(
+                      {
+                        artistId: (booking.artist as any)?.id,
+                        rating: reviewRating,
+                        body: reviewBody,
+                      },
+                      { onSuccess: () => { setShowReviewForm(false); setReviewBody('') } }
+                    )
+                  }
                   disabled={submitReview.isPending}
                   className="flex-1 py-2.5 rounded-xl bg-[#e63946] text-white text-sm font-medium hover:bg-[#d42f3b] transition-colors disabled:opacity-50"
                 >
-                  {submitReview.isPending ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Submit Review'}
+                  {submitReview.isPending ? (
+                    <Loader2 size={14} className="animate-spin mx-auto" />
+                  ) : (
+                    'Submit Review'
+                  )}
                 </button>
-                <button onClick={() => setShowReviewForm(false)} className="px-4 py-2.5 rounded-xl bg-white/5 text-white/40 text-sm hover:text-white transition-colors">
+                <button
+                  onClick={() => setShowReviewForm(false)}
+                  className="px-4 py-2.5 rounded-xl bg-white/5 text-white/40 text-sm hover:text-white transition-colors"
+                >
                   Cancel
                 </button>
               </div>
             </>
           ) : (
-            <button onClick={() => setShowReviewForm(true)} className="flex items-center gap-2 text-sm text-[#e63946] hover:text-[#ff5a65] transition-colors">
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="flex items-center gap-2 text-sm text-[#e63946] hover:text-[#ff5a65] transition-colors"
+            >
               <Star size={16} /> Leave a Review
             </button>
           )}
         </div>
       )}
 
-      {/* Existing review */}
+      {/* Client: existing review */}
       {!isArtist && hasReview && (
         <div className="ink-card p-5">
           <p className="text-xs text-white/30 uppercase tracking-widest mb-3">Your Review</p>
           <div className="flex gap-1 mb-2">
-            {[1,2,3,4,5].map(i => (
-              <Star key={i} size={16} className={i <= (booking.review as any)?.[0]?.rating ? 'text-[#e63946] fill-current' : 'text-white/10 fill-current'} />
+            {[1, 2, 3, 4, 5].map(i => (
+              <Star
+                key={i}
+                size={16}
+                className={
+                  i <= (booking.review as any)?.[0]?.rating
+                    ? 'text-[#e63946] fill-current'
+                    : 'text-white/10 fill-current'
+                }
+              />
             ))}
           </div>
           {(booking.review as any)?.[0]?.body && (
@@ -376,12 +341,18 @@ export default function BookingDetailPage() {
 
       {/* Message button */}
       <button
-        onClick={openConversation}
-        disabled={messaging}
+        onClick={() => {
+          if (otherProfileId) openConv.mutate({ otherProfileId })
+        }}
+        disabled={openConv.isPending || !otherProfileId}
         className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors disabled:opacity-50"
       >
-        {messaging ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
-        {messaging ? 'Opening...' : `Message ${other?.display_name}`}
+        {openConv.isPending ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <MessageSquare size={16} />
+        )}
+        {openConv.isPending ? 'Opening...' : `Message ${other?.display_name}`}
       </button>
     </div>
   )
