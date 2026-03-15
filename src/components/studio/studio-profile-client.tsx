@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { MapPin, Phone, Globe, Instagram, Calendar, CheckCircle } from 'lucide-react'
+import { NavLogo } from '@/components/ui/NavLogo'
 import { useAuthStore } from '@/lib/stores/auth'
 import { TATTOO_STYLES } from '@/lib/constants'
 import { getPublicUrl, BUCKETS } from '@/lib/storage'
@@ -25,9 +26,7 @@ export function StudioProfileClient({ studio }: Props) {
     <div className="min-h-screen bg-[#0a0a0b]">
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-md">
-        <a href="/dashboard" className="font-display text-2xl text-white tracking-wider hover:text-[#e63946] transition-colors">
-          INKSNAP
-        </a>
+        <a href="/dashboard"><NavLogo /></a>
         <div className="flex items-center gap-3">
           {profile ? (
             <a href="/dashboard" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">

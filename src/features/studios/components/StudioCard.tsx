@@ -18,14 +18,12 @@ export function StudioCard({ studio }: Props) {
     >
       {/* Avatar / cover */}
       <div className="relative h-32 bg-gradient-to-br from-[#e63946]/15 via-[#18181c] to-[#111114] flex items-center justify-center overflow-hidden">
-        {studio.avatar_url ? (
+        {studio.avatar_url && (
           <img
             src={studio.avatar_url}
             alt={studio.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-70"
           />
-        ) : (
-          <span className="font-display text-6xl text-white/10 select-none">{initial}</span>
         )}
         <div className="absolute inset-0 ink-image-overlay opacity-40" />
 

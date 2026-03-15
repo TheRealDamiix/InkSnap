@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Palette, User, Check, X } from 'lucide-react'
 import type { SignupFormValues, UsernameStatus } from '../auth.types'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 // ─── Validation schema ────────────────────────────────────────────────────────
 
@@ -114,15 +115,12 @@ export function SignupForm() {
   return (
     <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <Link
-          href="/"
-          className="font-display text-3xl text-white tracking-wider block mb-10 text-center"
-        >
-          INKSNAP
+        <Link href="/" className="flex justify-center mb-10">
+          <NavLogo />
         </Link>
 
         <div className="ink-card p-8">
-          <h1 className="font-display text-3xl text-white tracking-wide mb-1">JOIN INKSNAP</h1>
+          <h1 className="font-display text-3xl text-white tracking-wide mb-1">JOIN TATSY</h1>
           <p className="text-white/40 text-sm mb-8">Create your free account</p>
 
           {/* Role selector */}

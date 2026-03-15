@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import type { LoginFormValues } from '../auth.types'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 // ─── Validation schema ────────────────────────────────────────────────────────
 
@@ -72,11 +73,8 @@ export function LoginForm() {
   return (
     <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <Link
-          href="/"
-          className="font-display text-3xl text-white tracking-wider block mb-10 text-center"
-        >
-          INKSNAP
+        <Link href="/" className="flex justify-center mb-10">
+          <NavLogo />
         </Link>
 
         <div className="ink-card p-8">

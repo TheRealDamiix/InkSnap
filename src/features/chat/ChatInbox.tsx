@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, MessageCircle, MoreVertical, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { NavLogo } from '@/components/ui/NavLogo'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useConversations } from './useChat'
 
@@ -121,9 +122,7 @@ export function ChatInbox() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
-        <div className="font-display text-3xl text-white/20 tracking-wider animate-pulse">
-          INKSNAP
-        </div>
+        <NavLogo className="opacity-20 animate-pulse" />
       </div>
     )
   }

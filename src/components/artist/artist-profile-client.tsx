@@ -8,6 +8,7 @@ import {
   MapPin, Star, Instagram, Globe, Calendar, Heart,
   Bookmark, MessageSquare, CheckCircle, XCircle
 } from 'lucide-react'
+import { NavLogo } from '@/components/ui/NavLogo'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ArtistProfile } from '@/types'
 import { TATTOO_STYLES } from '@/lib/constants'
@@ -116,7 +117,7 @@ export function ArtistProfileClient({ artist }: Props) {
     <div className="min-h-screen bg-[#0a0a0b]">
       {/* Header bar */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-md">
-        <a href="/dashboard" className="font-display text-2xl text-white tracking-wider hover:text-[#e63946] transition-colors">INKSNAP</a>
+        <a href="/dashboard"><NavLogo /></a>
         {profile ? (
           <a href="/dashboard" className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors">
             <div className="w-7 h-7 rounded-full bg-[#e63946]/20 flex items-center justify-center text-[#e63946] font-display text-sm">

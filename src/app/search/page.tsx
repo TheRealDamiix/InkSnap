@@ -12,6 +12,7 @@ import type { Profile } from '@/types'
 import { getPublicUrl, BUCKETS } from '@/lib/storage'
 import { StudioCard } from '@/features/studios'
 import type { StudioSearchResult } from '@/features/studios'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 // ── City autocomplete ─────────────────────────────────────────────────────
 interface CitySuggestion {
@@ -194,7 +195,7 @@ function SearchContent() {
       {/* ── Top bar ── */}
       <div className="sticky top-0 z-30 bg-[#0a0a0b]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <Link href="/dashboard" className="font-display text-xl text-white tracking-wider hidden sm:block mr-2">INKSNAP</Link>
+          <Link href="/dashboard" className="hidden sm:block mr-2"><NavLogo /></Link>
 
           {/* Search input */}
           <div className="flex-1 relative">
@@ -308,16 +309,12 @@ function SearchContent() {
               return (
                 <Link key={artist.id} href={`/artist/${artist.username}`} className="ink-card overflow-hidden group hover:scale-[1.02] transition-transform">
                   <div className="relative aspect-square bg-[#1f1f24] overflow-hidden">
-                    {coverImg ? (
+                    {coverImg && (
                       <img
                         src={getPublicUrl(BUCKETS.PORTFOLIO, coverImg.storage_path)}
                         alt={artist.display_name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/10 font-display text-5xl">
-                        {artist.display_name[0]}
-                      </div>
                     )}
                     <div className="absolute inset-0 ink-image-overlay opacity-60" />
                     {artist.accepting_bookings && (

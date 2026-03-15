@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MapPin, Star, Zap } from 'lucide-react'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 export default function HomePage() {
   return (
@@ -8,7 +9,7 @@ export default function HomePage() {
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-md">
-        <span className="font-display text-3xl tracking-wider text-white">INKSNAP</span>
+        <NavLogo />
         <div className="flex items-center gap-3">
           <Link
             href="/auth/login"
@@ -176,7 +177,7 @@ export default function HomePage() {
             READY TO<br />GET INKED?
           </h2>
           <p className="text-white/40 mb-8">
-            Join thousands of clients who found their artist on InkSnap.
+            Join thousands of clients who found their artist on Tatsy.
           </p>
           <Link
             href="/auth/signup"
@@ -190,8 +191,8 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <span className="font-display text-xl text-white/20 tracking-wider">INKSNAP</span>
-          <p className="text-xs text-white/20">© 2025 InkSnap. All rights reserved.</p>
+          <NavLogo className="opacity-20" />
+          <p className="text-xs text-white/20">© 2025 Tatsy. All rights reserved.</p>
         </div>
       </footer>
     </div>

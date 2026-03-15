@@ -4,7 +4,7 @@ import { Providers } from '@/components/providers'
 import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
-  title: 'InkSnap — Find Your Artist',
+  title: 'Tatsy — Find Your Artist',
   description: 'Connect with tattoo artists in your city. Book, discover, and follow the best tattoo artists near you.',
   icons: {
     icon: '/favicon.ico',

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { UnreadBadge } from '@/components/messaging/unread-badge'
 import { RightRail } from '@/components/dashboard/RightRail'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuthStore()
@@ -25,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
-        <div className="font-display text-3xl text-white/20 tracking-wider animate-pulse">INKSNAP</div>
+        <NavLogo className="opacity-20 animate-pulse" />
       </div>
     )
   }
@@ -104,11 +105,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="hidden lg:flex flex-col w-[270px] shrink-0 sticky top-0 h-screen border-r border-white/[0.06]">
           {/* Logo */}
           <div className="px-6 pt-7 pb-5">
-            <Link
-              href="/dashboard"
-              className="font-display text-[26px] text-white tracking-wider hover:text-[#e63946] transition-colors"
-            >
-              INKSNAP
+            <Link href="/dashboard">
+              <NavLogo />
             </Link>
           </div>
 
@@ -151,8 +149,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Mobile top bar */}
           <div className="lg:hidden sticky top-0 z-30 bg-[#0a0a0b]/80 backdrop-blur-md border-b border-white/[0.06] flex items-center justify-between px-4 h-14">
-            <Link href="/dashboard" className="font-display text-xl text-white tracking-wider">
-              INKSNAP
+            <Link href="/dashboard">
+              <NavLogo />
             </Link>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -171,7 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               />
               <div className="relative w-[280px] bg-[#0a0a0b] border-r border-white/[0.06] flex flex-col">
                 <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-                  <span className="font-display text-2xl text-white tracking-wider">INKSNAP</span>
+                  <NavLogo />
                   <button onClick={() => setMobileOpen(false)} className="text-white/40 hover:text-white transition-colors">
                     <X size={20} />
                   </button>

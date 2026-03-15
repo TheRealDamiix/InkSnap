@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '@/lib/stores/auth'
 import { useMessages } from './useChat'
 import type { ChatMessage } from './chat.types'
+import { NavLogo } from '@/components/ui/NavLogo'
 
 // ── Small helpers ─────────────────────────────────────────────
 function MsgTime({ date }: { date: string }) {
@@ -262,9 +263,7 @@ export function ChatWindow() {
   if (authLoading) {
     return (
       <div className="h-[100dvh] bg-[#0a0a0b] flex items-center justify-center">
-        <div className="font-display text-3xl text-white/20 tracking-wider animate-pulse">
-          INKSNAP
-        </div>
+        <NavLogo className="opacity-20 animate-pulse" />
       </div>
     )
   }
