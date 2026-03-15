@@ -129,14 +129,12 @@ export function useCreateStudio() {
 
       if (studioError) throw studioError
 
-      // Automatically affiliate the creator as a primary artist
-      const { error: affError } = await supabase
-        .from('artist_studios')
-        .insert({
-          artist_id: profile.id,
-          studio_id: studio.id,
-          is_primary: true,
-        })
+      // Automatically affiliate the creator as a primary artist via RPC
+      // (direct INSERT hits the same RLS issue as useJoinStudio)
+      const { error: affError } = await supabase.rpc('join_studio', {
+        p_studio_id: studio.id,
+        p_is_primary: true,
+      })
 
       if (affError) throw affError
       return studio.id
@@ -148,6 +146,8 @@ export function useCreateStudio() {
 }
 
 // ── Join an existing studio ─────────────────────────────────────────
+// Uses join_studio RPC (SECURITY DEFINER) — same pattern as create_conversation.
+// Direct INSERT fails because my_profile_id() can return NULL client-side.
 export function useJoinStudio() {
   const { profile } = useAuthStore()
   const supabase = createClient()
@@ -156,13 +156,10 @@ export function useJoinStudio() {
   return useMutation({
     mutationFn: async ({ studioId, isPrimary }: { studioId: string; isPrimary: boolean }) => {
       if (!profile) throw new Error('Not authenticated')
-      const { error } = await supabase
-        .from('artist_studios')
-        .insert({
-          artist_id: profile.id,
-          studio_id: studioId,
-          is_primary: isPrimary,
-        })
+      const { error } = await supabase.rpc('join_studio', {
+        p_studio_id: studioId,
+        p_is_primary: isPrimary,
+      })
       if (error) throw error
     },
     onSuccess: () => {
