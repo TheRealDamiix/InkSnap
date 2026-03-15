@@ -168,8 +168,16 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════
           CTA
           ══════════════════════════════════════════ */}
-      <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative py-24 px-6 overflow-hidden">
+        {/* Watermark logo behind content */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <img
+            src="/navlogo.png"
+            alt=""
+            className="w-[520px] max-w-[80vw] opacity-[0.04]"
+          />
+        </div>
+        <div className="max-w-3xl mx-auto text-center relative z-10">
           <h2
             className="font-display text-white tracking-wide mb-6 leading-none"
             style={{ fontSize: 'clamp(2.5rem,6vw,5rem)' }}
@@ -191,7 +199,7 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <NavLogo className="opacity-20" />
+          <span className="font-display text-xl text-white/20 tracking-wider">Tatsy</span>
           <p className="text-xs text-white/20">© 2025 Tatsy. All rights reserved.</p>
         </div>
       </footer>
