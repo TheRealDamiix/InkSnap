@@ -112,3 +112,15 @@ export interface ArtistProfile extends Profile {
   review_count?: number
   follower_count?: number
 }
+
+// Artist row as it appears on a studio's affiliated artists list
+export interface StudioArtist extends Profile {
+  is_primary: boolean
+  portfolio_cover?: string | null   // first portfolio image storage_path
+}
+
+// Studio with its affiliated artists — used on the studio profile page
+export interface StudioWithArtists extends Studio {
+  owner_id?: string | null
+  artists: StudioArtist[]
+}

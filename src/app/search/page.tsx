@@ -3,14 +3,17 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Search, MapPin, SlidersHorizontal, X, Star, Map, List } from 'lucide-react'
+import { Search, MapPin, SlidersHorizontal, X, Map, List, Building2, Palette } from 'lucide-react'
 import { TATTOO_STYLES } from '@/lib/constants'
 import Link from 'next/link'
 import type { Profile } from '@/types'
 import { getPublicUrl, BUCKETS } from '@/lib/storage'
+import { StudioCard } from '@/features/studios'
+import type { StudioSearchResult } from '@/features/studios'
 
+// ── City autocomplete ─────────────────────────────────────────────────────
 interface CitySuggestion {
   display_name: string
   name: string
@@ -25,9 +28,7 @@ function CityInput({ value, onChange }: { value: string; onChange: (v: string) =
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -46,7 +47,7 @@ function CityInput({ value, onChange }: { value: string; onChange: (v: string) =
         const data: CitySuggestion[] = await res.json()
         setSuggestions(data)
         setOpen(data.length > 0)
-      } catch { /* network error — silently ignore */ }
+      } catch { /* ignore */ }
     }, 400)
   }
 
@@ -94,21 +95,25 @@ function CityInput({ value, onChange }: { value: string; onChange: (v: string) =
   )
 }
 
+// ── Main search content ───────────────────────────────────────────────────
 function SearchContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
+  const [searchType, setSearchType] = useState<'artists' | 'studios'>(
+    (searchParams.get('type') as any) ?? 'artists'
+  )
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const [city, setCity] = useState(searchParams.get('city') ?? '')
   const [selectedStyles, setSelectedStyles] = useState<string[]>(
     searchParams.get('styles')?.split(',').filter(Boolean) ?? []
   )
   const [artists, setArtists] = useState<any[]>([])
+  const [studios, setStudios] = useState<StudioSearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid')
   const supabase = createClient()
 
-  const search = async () => {
+  // ── Artist search ──────────────────────────────────────────────────
+  const searchArtists = async () => {
     setLoading(true)
     let q = supabase
       .from('profiles')
@@ -120,73 +125,134 @@ function SearchContent() {
       .eq('role', 'artist')
       .order('accepting_bookings', { ascending: false })
 
-    if (query) {
-      q = q.or(`display_name.ilike.%${query}%,username.ilike.%${query}%,bio.ilike.%${query}%`)
-    }
-    if (city) {
-      q = q.ilike('city', `%${city}%`)
-    }
-    if (selectedStyles.length > 0) {
-      q = q.overlaps('tattoo_styles', selectedStyles)
-    }
+    if (query) q = q.or(`display_name.ilike.%${query}%,username.ilike.%${query}%,bio.ilike.%${query}%`)
+    if (city)  q = q.ilike('city', `%${city}%`)
+    if (selectedStyles.length > 0) q = q.overlaps('tattoo_styles', selectedStyles)
 
     const { data } = await q.limit(40)
     setArtists(data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { search() }, [query, city, selectedStyles])
+  // ── Studio search ──────────────────────────────────────────────────
+  const searchStudios = async () => {
+    setLoading(true)
+    let q = supabase
+      .from('studios')
+      .select('*')
+      .order('name', { ascending: true })
 
-  const toggleStyle = (slug: string) => {
-    setSelectedStyles(prev =>
-      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
-    )
+    if (query) q = q.or(`name.ilike.%${query}%,city.ilike.%${query}%,state.ilike.%${query}%`)
+    if (city)  q = q.ilike('city', `%${city}%`)
+
+    const { data: studioData } = await q.limit(40)
+    if (!studioData || studioData.length === 0) {
+      setStudios([])
+      setLoading(false)
+      return
+    }
+
+    // Fetch artist counts + preview avatars
+    const studioIds = studioData.map(s => s.id)
+    const { data: affiliations } = await supabase
+      .from('artist_studios')
+      .select('studio_id, artist_id, profiles(id, display_name, avatar_url)')
+      .in('studio_id', studioIds)
+
+    const enriched: StudioSearchResult[] = studioData.map(studio => {
+      const affs = affiliations?.filter(a => a.studio_id === studio.id) ?? []
+      return {
+        ...studio,
+        artist_count: affs.length,
+        artist_previews: affs.slice(0, 4).map((a: any) => a.profiles).filter(Boolean),
+      }
+    })
+
+    setStudios(enriched)
+    setLoading(false)
   }
+
+  useEffect(() => {
+    if (searchType === 'artists') searchArtists()
+    else searchStudios()
+  }, [query, city, selectedStyles, searchType])
+
+  const toggleStyle = (slug: string) =>
+    setSelectedStyles(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug])
+
+  const switchType = (t: 'artists' | 'studios') => {
+    setSearchType(t)
+    // Clear style filters when switching to studios (studios don't filter by style)
+    if (t === 'studios') setSelectedStyles([])
+    setFiltersOpen(false)
+  }
+
+  const resultCount = searchType === 'artists' ? artists.length : studios.length
 
   return (
     <div className="min-h-screen bg-[#0a0a0b]">
-      {/* Top bar */}
+      {/* ── Top bar ── */}
       <div className="sticky top-0 z-30 bg-[#0a0a0b]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
           <Link href="/dashboard" className="font-display text-xl text-white tracking-wider hidden sm:block mr-2">INKSNAP</Link>
+
           {/* Search input */}
           <div className="flex-1 relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search artists, styles..."
+              placeholder={searchType === 'artists' ? 'Search artists, styles…' : 'Search studios…'}
               className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-white/25 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
             />
           </div>
-          {/* City input with autocomplete */}
+
           <CityInput value={city} onChange={setCity} />
+
+          {/* Style filter — only for artists */}
+          {searchType === 'artists' && (
+            <button
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className={`p-2.5 rounded-xl border text-sm transition-colors flex items-center gap-1.5 ${
+                selectedStyles.length > 0 || filtersOpen
+                  ? 'bg-[#e63946]/10 border-[#e63946]/30 text-[#e63946]'
+                  : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+              }`}
+            >
+              <SlidersHorizontal size={16} />
+              {selectedStyles.length > 0 && <span className="text-xs">{selectedStyles.length}</span>}
+            </button>
+          )}
+        </div>
+
+        {/* ── Type tabs: Artists | Studios ── */}
+        <div className="max-w-6xl mx-auto mt-3 flex items-center gap-1">
           <button
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`p-2.5 rounded-xl border text-sm transition-colors flex items-center gap-1.5 ${
-              selectedStyles.length > 0 || filtersOpen
-                ? 'bg-[#e63946]/10 border-[#e63946]/30 text-[#e63946]'
-                : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+            onClick={() => switchType('artists')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              searchType === 'artists'
+                ? 'bg-[#e63946] text-white'
+                : 'bg-white/5 text-white/50 hover:text-white border border-white/10'
             }`}
           >
-            <SlidersHorizontal size={16} />
-            {selectedStyles.length > 0 && <span className="text-xs">{selectedStyles.length}</span>}
+            <Palette size={14} />
+            Artists
           </button>
-          <div className="flex rounded-xl border border-white/10 overflow-hidden">
-            {[{ mode: 'grid', icon: <List size={16} /> }, { mode: 'map', icon: <Map size={16} /> }].map(({ mode, icon }) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode as any)}
-                className={`p-2.5 transition-colors ${viewMode === mode ? 'bg-white/10 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => switchType('studios')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              searchType === 'studios'
+                ? 'bg-[#e63946] text-white'
+                : 'bg-white/5 text-white/50 hover:text-white border border-white/10'
+            }`}
+          >
+            <Building2 size={14} />
+            Studios
+          </button>
         </div>
 
         {/* Style filters */}
-        {filtersOpen && (
+        {filtersOpen && searchType === 'artists' && (
           <div className="max-w-6xl mx-auto mt-3 flex flex-wrap gap-2">
             {TATTOO_STYLES.map(s => (
               <button
@@ -210,14 +276,17 @@ function SearchContent() {
         )}
       </div>
 
-      {/* Results */}
+      {/* ── Results ── */}
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-white/40">
-            {loading ? 'Searching...' : <><span className="text-[#f5c518] font-medium">{artists.length}</span> artists found</>}
-            {city && ` in ${city}`}
-          </p>
-        </div>
+        <p className="text-sm text-white/40 mb-5">
+          {loading ? 'Searching…' : (
+            <>
+              <span className="text-[#f5c518] font-medium">{resultCount}</span>
+              {' '}{searchType === 'artists' ? 'artists' : 'studios'} found
+              {city && ` in ${city}`}
+            </>
+          )}
+        </p>
 
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -231,13 +300,13 @@ function SearchContent() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : searchType === 'artists' ? (
+          // ── Artist grid ──
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {artists.map((artist) => {
               const coverImg = artist.portfolio_images?.sort((a: any, b: any) => a.display_order - b.display_order)[0]
               return (
                 <Link key={artist.id} href={`/artist/${artist.username}`} className="ink-card overflow-hidden group hover:scale-[1.02] transition-transform">
-                  {/* Cover image */}
                   <div className="relative aspect-square bg-[#1f1f24] overflow-hidden">
                     {coverImg ? (
                       <img
@@ -255,8 +324,6 @@ function SearchContent() {
                       <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="p-3">
                     <div className="font-medium text-sm text-white truncate">{artist.display_name}</div>
                     {artist.city && (
@@ -281,10 +348,23 @@ function SearchContent() {
                 </Link>
               )
             })}
-            {artists.length === 0 && !loading && (
+            {artists.length === 0 && (
               <div className="col-span-4 text-center py-16 text-white/20">
                 <Search size={40} className="mx-auto mb-3 opacity-40" />
                 <p className="text-sm">No artists found. Try adjusting your search.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          // ── Studio grid ──
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {studios.map(studio => (
+              <StudioCard key={studio.id} studio={studio} />
+            ))}
+            {studios.length === 0 && (
+              <div className="col-span-4 text-center py-16 text-white/20">
+                <Building2 size={40} className="mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No studios found. Try a different search.</p>
               </div>
             )}
           </div>

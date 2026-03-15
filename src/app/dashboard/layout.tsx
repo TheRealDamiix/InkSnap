@@ -7,7 +7,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, Search, MessageSquare, Calendar,
-  User, LogOut, Zap, Bookmark, Images, Menu, X,
+  User, LogOut, Zap, Bookmark, Images, Menu, X, Building2,
 } from 'lucide-react'
 import { UnreadBadge } from '@/components/messaging/unread-badge'
 import { RightRail } from '@/components/dashboard/RightRail'
@@ -39,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/bookings',  label: 'Bookings',   icon: <Calendar size={22} /> },
     { href: '/dashboard/portfolio', label: 'Portfolio',  icon: <Images size={22} /> },
     { href: '/dashboard/promotions',label: 'Promotions', icon: <Zap size={22} /> },
+    { href: '/dashboard/studio',    label: 'My Studio',  icon: <Building2 size={22} /> },
     { href: '/messages',            label: 'Messages',   icon: <MessageSquare size={22} />, badge: true },
     { href: '/search',              label: 'Discover',   icon: <Search size={22} /> },
     { href: '/dashboard/profile',   label: 'Profile',    icon: <User size={22} /> },

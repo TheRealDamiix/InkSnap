@@ -109,7 +109,7 @@ export default function HomePage() {
 
               <div className="relative z-10 w-[460px] h-[560px]">
                 <Image
-                  src="/rose.jpg"
+                  src="/rose.png"
                   alt="Tattoo rose"
                   fill
                   className="object-contain drop-shadow-[0_0_60px_rgba(230,57,70,0.35)]"
@@ -119,24 +119,6 @@ export default function HomePage() {
             </div>
 
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          STATS
-          ══════════════════════════════════════════ */}
-      <section className="border-y border-white/5 bg-white/[0.02] py-12 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-8 text-center">
-          {[
-            { value: 'Free',   label: 'To join & browse' },
-            { value: 'Direct', label: 'Artist messaging' },
-            { value: 'Easy',   label: 'Booking requests' },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <div className="font-display text-5xl text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-white/40">{stat.label}</div>
-            </div>
-          ))}
         </div>
       </section>
 
