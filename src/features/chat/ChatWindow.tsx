@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 import { useMessages } from './useChat'
 import type { ChatMessage } from './chat.types'
 import { NavLogo } from '@/components/ui/NavLogo'
+import Image from 'next/image'
 
 // ── Small helpers ─────────────────────────────────────────────
 function MsgTime({ date }: { date: string }) {
@@ -262,7 +263,7 @@ export function ChatWindow() {
 
   if (authLoading) {
     return (
-      <div className="h-[100dvh] bg-[#0a0a0b] flex items-center justify-center">
+      <div className="h-[calc(100dvh-4rem)] lg:h-[100dvh] bg-[#0a0a0b] flex items-center justify-center">
         <NavLogo className="opacity-20 animate-pulse" />
       </div>
     )
@@ -270,7 +271,19 @@ export function ChatWindow() {
   if (!profile) return null
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0a0a0b]">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] bg-[#0a0a0b] relative overflow-hidden">
+
+      {/* Tatsy watermark */}
+      <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0">
+        <Image
+          src="/navlogo.png"
+          alt=""
+          width={320}
+          height={320}
+          className="opacity-[0.03] w-64 h-64 object-contain"
+          aria-hidden
+        />
+      </div>
 
       {/* Delete confirmation modal */}
       {confirmDelete && (

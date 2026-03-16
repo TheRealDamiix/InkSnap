@@ -12,6 +12,7 @@ import {
 import { UnreadBadge } from '@/components/messaging/unread-badge'
 import { RightRail } from '@/components/dashboard/RightRail'
 import { NavLogo } from '@/components/ui/NavLogo'
+import { MobileBottomNav } from '@/components/ui/MobileBottomNav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuthStore()
@@ -216,26 +217,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
 
           {/* Mobile bottom tab bar */}
-          <div className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0a0a0b]/90 backdrop-blur-md border-t border-white/[0.06] z-30 flex items-center justify-around px-1 h-16">
-            {navItems.slice(0, 5).map((item) => {
-              const active = isActive(item.href, item.exact)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex flex-col items-center justify-center flex-1 h-full gap-1 relative transition-colors ${
-                    active ? 'text-white' : 'text-white/30'
-                  }`}
-                >
-                  {item.icon}
-                  {item.badge && <UnreadBadge profileId={profile.id} />}
-                  {active && (
-                    <span className="absolute bottom-0 inset-x-1/4 h-[2px] bg-[#e63946] rounded-t-full" />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
+          <MobileBottomNav />
         </div>
 
         {/* ── Right Rail (desktop xl+) ──────────────────────────── */}

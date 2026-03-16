@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, MessageCircle, MoreVertical, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { NavLogo } from '@/components/ui/NavLogo'
+import Image from 'next/image'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useConversations } from './useChat'
 
@@ -128,7 +129,20 @@ export function ChatInbox() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b]">
+    <div className="min-h-screen bg-[#0a0a0b] relative overflow-hidden pb-20 lg:pb-0">
+
+      {/* Tatsy watermark */}
+      <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0">
+        <Image
+          src="/navlogo.png"
+          alt=""
+          width={320}
+          height={320}
+          className="opacity-[0.03] w-64 h-64 object-contain"
+          aria-hidden
+        />
+      </div>
+
       {/* Delete confirmation modal */}
       {confirmId && confirmingConv && (
         <DeleteConfirm

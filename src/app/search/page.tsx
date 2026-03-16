@@ -13,6 +13,7 @@ import { getPublicUrl, BUCKETS } from '@/lib/storage'
 import { StudioCard } from '@/features/studios'
 import type { StudioSearchResult } from '@/features/studios'
 import { NavLogo } from '@/components/ui/NavLogo'
+import { MobileBottomNav } from '@/components/ui/MobileBottomNav'
 
 // ── City autocomplete ─────────────────────────────────────────────────────
 interface CitySuggestion {
@@ -191,7 +192,7 @@ function SearchContent() {
   const resultCount = searchType === 'artists' ? artists.length : studios.length
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b]">
+    <div className="min-h-screen bg-[#0a0a0b] pb-20 lg:pb-0">
       {/* ── Top bar ── */}
       <div className="sticky top-0 z-30 bg-[#0a0a0b]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
@@ -373,8 +374,11 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense>
-      <SearchContent />
-    </Suspense>
+    <>
+      <Suspense>
+        <SearchContent />
+      </Suspense>
+      <MobileBottomNav />
+    </>
   )
 }
