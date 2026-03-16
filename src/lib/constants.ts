@@ -38,3 +38,10 @@ export const BOOKING_STATUS_COLORS: Record<string, string> = {
   declined: 'text-red-400 bg-red-400/10',
   completed: 'text-blue-400 bg-blue-400/10',
 }
+
+export const FEED_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  flash_deal:  { label: 'Flash Deal',   color: 'text-[#e63946] bg-[#e63946]/10' },
+  update:      { label: 'Update',       color: 'text-blue-400 bg-blue-400/10'   },
+  convention:  { label: 'Convention',   color: 'text-purple-400 bg-purple-400/10' },
+  studio_post: { label: 'Studio Post',  color: 'text-amber-400 bg-amber-400/10' },
+}

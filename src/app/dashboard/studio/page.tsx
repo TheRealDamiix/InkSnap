@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { createClient } from '@/lib/supabase/client'
 import {
   useMyStudios,
   useCreateStudio,
@@ -14,9 +16,13 @@ import {
 import {
   MapPin, Plus, Search, Star, ExternalLink,
   Trash2, Globe, Phone, Instagram, CheckCircle, Building2, X,
+  Zap, Loader2, Send,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { StudioFormValues } from '@/features/studios'
+import type { PromotionType } from '@/types'
+import { formatDistanceToNow } from 'date-fns'
+import { FEED_TYPE_CONFIG } from '@/lib/constants'
 
 // ── Blank form ────────────────────────────────────────────────────────
 const BLANK: StudioFormValues = {
@@ -342,6 +348,16 @@ export default function StudioDashboardPage() {
       )}
 
       {/* ══════════════════════════════════════
+          STUDIO POSTS (owner only)
+          ══════════════════════════════════════ */}
+      {myStudios.some((a: any) => a.studio?.owner_id === profile.id) && (
+        <StudioPostsSection
+          studioId={(myStudios.find((a: any) => a.studio?.owner_id === profile.id) as any)?.studio_id}
+          studioName={(myStudios.find((a: any) => a.studio?.owner_id === profile.id) as any)?.studio?.name}
+        />
+      )}
+
+      {/* ══════════════════════════════════════
           FIND & JOIN A STUDIO
           ══════════════════════════════════════ */}
       {mode === 'join' && (
@@ -410,6 +426,224 @@ export default function StudioDashboardPage() {
           ) : (
             <p className="text-center text-sm text-white/20 py-8">Type at least 2 characters to search.</p>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Studio Posts sub-component ──────────────────────────────────────────────
+
+interface StudioPostsSectionProps {
+  studioId: string
+  studioName: string
+}
+
+const POST_TYPES: { value: PromotionType; label: string }[] = [
+  { value: 'studio_post', label: 'Studio Post' },
+  { value: 'flash_deal',  label: 'Flash Deal' },
+  { value: 'update',      label: 'Update' },
+  { value: 'convention',  label: 'Convention' },
+]
+
+function StudioPostsSection({ studioId, studioName }: StudioPostsSectionProps) {
+  const qc = useQueryClient()
+  const supabase = createClient()
+  const [showForm, setShowForm] = useState(false)
+  const [postError, setPostError] = useState('')
+  const [postForm, setPostForm] = useState({
+    type: 'studio_post' as PromotionType,
+    title: '',
+    body: '',
+    price: '',
+    expires_at: '',
+    location: '',
+  })
+
+  const { data: posts, isLoading: loadingPosts } = useQuery({
+    queryKey: ['studio-posts', studioId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('promotions')
+        .select('*')
+        .eq('studio_id', studioId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  const createPost = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('promotions').insert({
+        studio_id: studioId,
+        artist_id: null,
+        convention_id: null,
+        type: postForm.type,
+        title: postForm.title,
+        body: postForm.body || null,
+        price: postForm.price ? parseFloat(postForm.price) : null,
+        expires_at: postForm.expires_at || null,
+        location: postForm.location || null,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['studio-posts', studioId] })
+      qc.invalidateQueries({ queryKey: ['for-you-feed'] })
+      setShowForm(false)
+      setPostForm({ type: 'studio_post', title: '', body: '', price: '', expires_at: '', location: '' })
+    },
+    onError: (err: any) => setPostError(err.message ?? 'Failed to post.'),
+  })
+
+  const deletePost = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('promotions').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['studio-posts', studioId] }),
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setPostError('')
+    if (!postForm.title.trim()) { setPostError('Title is required.'); return }
+    createPost.mutate()
+  }
+
+  return (
+    <div className="mt-10">
+      <div className="ink-accent-line mb-3" />
+      <div className="flex items-end justify-between mb-4">
+        <div>
+          <h2 className="font-display text-3xl text-white tracking-wide">STUDIO POSTS</h2>
+          <p className="text-white/40 text-sm mt-1">Post as <span className="text-white/60">{studioName}</span> — visible in followers&apos; For You feeds.</p>
+        </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#e63946] hover:bg-[#d42f3b] text-white text-sm font-medium transition-all"
+        >
+          {showForm ? <X size={15} /> : <Plus size={15} />}
+          {showForm ? 'Cancel' : 'New Post'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="ink-card p-5 mb-5 space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-white/40 mb-1.5">Post Type</label>
+              <select
+                value={postForm.type}
+                onChange={e => setPostForm(f => ({ ...f, type: e.target.value as PromotionType }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+              >
+                {POST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/40 mb-1.5">Price (optional)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={postForm.price}
+                onChange={e => setPostForm(f => ({ ...f, price: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-white/40 mb-1.5">Title *</label>
+              <input
+                value={postForm.title}
+                onChange={e => setPostForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. Flash sale this weekend only!"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-white/40 mb-1.5">Body</label>
+              <textarea
+                rows={3}
+                value={postForm.body}
+                onChange={e => setPostForm(f => ({ ...f, body: e.target.value }))}
+                placeholder="More details…"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/40 mb-1.5">Location</label>
+              <input
+                value={postForm.location}
+                onChange={e => setPostForm(f => ({ ...f, location: e.target.value }))}
+                placeholder="Nashville, TN"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/40 mb-1.5">Expires At</label>
+              <input
+                type="date"
+                value={postForm.expires_at}
+                onChange={e => setPostForm(f => ({ ...f, expires_at: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#e63946]/40 text-sm transition-colors"
+              />
+            </div>
+          </div>
+
+          {postError && <p className="text-xs text-red-400">{postError}</p>}
+
+          <button
+            type="submit"
+            disabled={createPost.isPending}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#e63946] hover:bg-[#d42f3b] text-white text-sm font-medium transition-all disabled:opacity-50"
+          >
+            {createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            Post
+          </button>
+        </form>
+      )}
+
+      {loadingPosts ? (
+        <div className="space-y-3">
+          {[1, 2].map(i => <div key={i} className="skeleton h-16 rounded-xl" />)}
+        </div>
+      ) : !posts?.length ? (
+        <div className="ink-card p-8 text-center">
+          <Zap size={32} className="mx-auto text-white/10 mb-3" />
+          <p className="text-white/30 text-sm">No studio posts yet. Create one above!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {posts.map((post: any) => {
+            const cfg = FEED_TYPE_CONFIG[post.type] ?? FEED_TYPE_CONFIG.studio_post
+            return (
+              <div key={post.id} className="ink-card p-4 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
+                    <span className="text-[10px] text-white/25">
+                      {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-white">{post.title}</p>
+                  {post.body && <p className="text-xs text-white/40 mt-0.5 line-clamp-2">{post.body}</p>}
+                </div>
+                <button
+                  onClick={() => deletePost.mutate(post.id)}
+                  disabled={deletePost.isPending}
+                  className="text-white/20 hover:text-[#e63946] transition-colors flex-shrink-0 mt-1"
+                  title="Delete post"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

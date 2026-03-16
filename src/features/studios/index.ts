@@ -8,5 +8,6 @@ export {
   useJoinStudio,
   useLeaveStudio,
   useSetPrimaryStudio,
+  useStudioFollow,
 } from './hooks/useStudios'
 export type { StudioFormValues, StudioSearchResult } from './studios.types'

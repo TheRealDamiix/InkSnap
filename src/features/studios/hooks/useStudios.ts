@@ -190,6 +190,50 @@ export function useLeaveStudio() {
   })
 }
 
+// ── Studio follow toggle ─────────────────────────────────────────────
+export function useStudioFollow(studioId: string, profileId: string | null | undefined) {
+  const supabase = createClient()
+  const qc = useQueryClient()
+
+  const { data: isFollowing } = useQuery({
+    queryKey: ['studio-follow', studioId, profileId],
+    enabled: !!profileId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('studio_follows')
+        .select('follower_id')
+        .eq('studio_id', studioId)
+        .eq('follower_id', profileId!)
+        .maybeSingle()
+      return !!data
+    },
+  })
+
+  const toggle = useMutation({
+    mutationFn: async () => {
+      if (isFollowing) {
+        const { error } = await supabase
+          .from('studio_follows')
+          .delete()
+          .eq('studio_id', studioId)
+          .eq('follower_id', profileId!)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('studio_follows')
+          .insert({ studio_id: studioId, follower_id: profileId! })
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['studio-follow', studioId] })
+      qc.invalidateQueries({ queryKey: ['for-you-feed'] })
+    },
+  })
+
+  return { isFollowing: !!isFollowing, toggle: toggle.mutate, isPending: toggle.isPending }
+}
+
 // ── Set primary studio ──────────────────────────────────────────────
 export function useSetPrimaryStudio() {
   const { profile } = useAuthStore()

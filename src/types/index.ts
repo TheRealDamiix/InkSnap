@@ -2,7 +2,7 @@ import type { PortfolioImage } from '@/features/portfolio'
 import type { Review } from '@/features/bookings'
 
 export type UserRole = 'artist' | 'client'
-export type PromotionType = 'flash_deal' | 'update' | 'convention'
+export type PromotionType = 'flash_deal' | 'update' | 'convention' | 'studio_post'
 
 export interface Profile {
   id: string
@@ -31,6 +31,7 @@ export interface Profile {
 
 export interface Studio {
   id: string
+  owner_id: string | null
   name: string
   address: string | null
   city: string
@@ -42,6 +43,7 @@ export interface Studio {
   instagram: string | null
   phone: string | null
   avatar_url: string | null
+  is_verified: boolean
   created_at: string
   updated_at: string
 }
@@ -69,7 +71,9 @@ export interface ArtistAvailability {
 
 export interface Promotion {
   id: string
-  artist_id: string
+  artist_id: string | null
+  studio_id: string | null
+  convention_id: string | null
   type: PromotionType
   title: string
   body: string | null
@@ -80,6 +84,7 @@ export interface Promotion {
   created_at: string
   updated_at: string
   artist?: Profile
+  studio?: Studio
 }
 
 export interface Follow {
@@ -121,6 +126,72 @@ export interface StudioArtist extends Profile {
 
 // Studio with its affiliated artists — used on the studio profile page
 export interface StudioWithArtists extends Studio {
-  owner_id?: string | null
   artists: StudioArtist[]
+}
+
+// ─── Conventions ───────────────────────────────────────────
+
+export type ConventionArtistStatus = 'pending' | 'confirmed'
+
+export interface Convention {
+  id: string
+  name: string
+  description: string | null
+  organizer_id: string
+  studio_id: string | null
+  city: string | null
+  venue: string | null
+  start_date: string
+  end_date: string
+  cover_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ArtistConvention {
+  artist_id: string
+  convention_id: string
+  status: ConventionArtistStatus
+  created_at: string
+}
+
+export interface ConventionWithArtists extends Convention {
+  artist_count: number
+  artist_previews: Array<{ id: string; display_name: string; avatar_url: string | null }>
+}
+
+// ─── Follow tables ─────────────────────────────────────────
+
+export interface StudioFollow {
+  follower_id: string
+  studio_id: string
+  created_at: string
+}
+
+export interface ConventionFollow {
+  follower_id: string
+  convention_id: string
+  created_at: string
+}
+
+// ─── For You Feed ──────────────────────────────────────────
+
+export type FeedAuthorKind = 'artist' | 'studio' | 'convention'
+
+export interface FeedPost {
+  id: string
+  type: PromotionType
+  title: string
+  body: string | null
+  image_url: string | null
+  price: number | null
+  expires_at: string | null
+  location: string | null
+  created_at: string
+  author_kind: FeedAuthorKind
+  author_id: string
+  author_name: string
+  author_avatar: string | null
+  /** username slug for artists; id for studios/conventions */
+  author_slug: string
 }

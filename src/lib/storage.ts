@@ -5,6 +5,7 @@ export const BUCKETS = {
   PORTFOLIO: 'portfolio',
   BOOKING_REFS: 'booking-refs',
   PROMOTIONS: 'promotions',
+  CONVENTION_COVERS: 'convention-covers',
 } as const
 
 export function getPublicUrl(bucket: string, path: string): string {

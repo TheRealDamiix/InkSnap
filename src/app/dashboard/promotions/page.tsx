@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -25,10 +25,11 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-const TYPE_CONFIG = {
-  flash_deal: { label: 'Flash Deal', icon: <Zap size={16} />, color: 'text-[#f5c518] bg-[#f5c518]/10 border-[#f5c518]/20' },
-  update: { label: 'Artist Update', icon: <Bell size={16} />, color: 'text-blue-400 bg-blue-400/10 border-blue-400/20' },
-  convention: { label: 'Convention', icon: <MapPin size={16} />, color: 'text-purple-400 bg-purple-400/10 border-purple-400/20' },
+const TYPE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  flash_deal:  { label: 'Flash Deal',   icon: <Zap size={16} />,   color: 'text-[#f5c518] bg-[#f5c518]/10 border-[#f5c518]/20'       },
+  update:      { label: 'Artist Update', icon: <Bell size={16} />,  color: 'text-blue-400 bg-blue-400/10 border-blue-400/20'          },
+  convention:  { label: 'Convention',   icon: <MapPin size={16} />, color: 'text-purple-400 bg-purple-400/10 border-purple-400/20'   },
+  studio_post: { label: 'Studio Post',  icon: <Zap size={16} />,   color: 'text-amber-400 bg-amber-400/10 border-amber-400/20'       },
 }
 
 export default function PromotionsPage() {

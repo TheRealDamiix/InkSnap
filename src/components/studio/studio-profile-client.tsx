@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Phone, Globe, Instagram, Calendar, CheckCircle } from 'lucide-react'
+import { MapPin, Phone, Globe, Instagram, ShieldCheck, Bell, BellOff } from 'lucide-react'
 import { NavLogo } from '@/components/ui/NavLogo'
 import { useAuthStore } from '@/lib/stores/auth'
 import { TATTOO_STYLES } from '@/lib/constants'
 import { getPublicUrl, BUCKETS } from '@/lib/storage'
+import { useStudioFollow } from '@/features/studios'
 import type { StudioWithArtists } from '@/types'
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
 
 export function StudioProfileClient({ studio }: Props) {
   const { profile } = useAuthStore()
+  const { isFollowing, toggle: toggleFollow, isPending: followPending } =
+    useStudioFollow(studio.id, profile?.id)
 
   // Aggregate all styles across affiliated artists (deduplicated)
   const allStyles = Array.from(
@@ -70,7 +73,14 @@ export function StudioProfileClient({ studio }: Props) {
                 )}
               </div>
               <div className="pb-1">
-                <h1 className="font-display text-3xl text-white tracking-wide">{studio.name.toUpperCase()}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-3xl text-white tracking-wide">{studio.name.toUpperCase()}</h1>
+                  {studio.is_verified && (
+                    <span title="Verified Studio" className="flex-shrink-0">
+                      <ShieldCheck size={20} className="text-blue-400" />
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1 text-white/40 text-sm mt-0.5">
                   <MapPin size={12} />
                   {[studio.address, studio.city, studio.state].filter(Boolean).join(', ')}
@@ -78,15 +88,33 @@ export function StudioProfileClient({ studio }: Props) {
               </div>
             </div>
 
-            {/* Owner action */}
-            {isOwner && (
-              <Link
-                href="/dashboard/studio"
-                className="px-4 py-2 text-sm border border-white/10 rounded-lg text-white/60 hover:text-white hover:border-white/30 transition-all"
-              >
-                Manage Studio
-              </Link>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Follow button */}
+              {profile && (
+                <button
+                  onClick={() => toggleFollow()}
+                  disabled={followPending}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    isFollowing
+                      ? 'bg-[#e63946]/20 text-[#e63946] hover:bg-[#e63946]/30'
+                      : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {isFollowing ? <BellOff size={12} /> : <Bell size={12} />}
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              )}
+
+              {/* Owner action */}
+              {isOwner && (
+                <Link
+                  href="/dashboard/studio"
+                  className="px-4 py-2 text-sm border border-white/10 rounded-lg text-white/60 hover:text-white hover:border-white/30 transition-all"
+                >
+                  Manage Studio
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Contact links */}

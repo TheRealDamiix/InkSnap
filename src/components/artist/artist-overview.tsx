@@ -9,6 +9,7 @@ import type { Booking } from '@/features/bookings'
 import { useUpdateBookingStatus } from '@/features/bookings'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS } from '@/lib/constants'
 import { formatDistanceToNow } from 'date-fns'
+import { ForYouFeed } from '@/features/feed'
 
 export function ArtistOverview() {
   const { profile } = useAuthStore()
@@ -183,6 +184,16 @@ export function ArtistOverview() {
           </Link>
         </div>
       )}
+
+      {/* ── For You Feed ──────────────────────────────────────── */}
+      <div>
+        <div className="px-4 py-3 border-b border-white/[0.06]">
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-medium">For You</p>
+        </div>
+        <div className="px-4 py-4">
+          <ForYouFeed showFilters />
+        </div>
+      </div>
     </div>
   )
 }
